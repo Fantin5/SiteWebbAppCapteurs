@@ -28,7 +28,7 @@ function App() {
       case 'login':
         return <Login onLogin={handleLogin} onSwitch={handlePageSwitch} />;
       case 'register':
-        return <Register onSwitch={handlePageSwitch} />;
+        return <Register onSwitch={handlePageSwitch} onLogin={handleLogin} />;
       case 'dashboard':
         return <Dashboard user={user} onLogout={handleLogout} />;
       default:

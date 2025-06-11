@@ -57,10 +57,19 @@ try {
     
     $stmt->execute([$nomValue, $prenomValue, $email, $hashedPassword]);
     
+    // Get the newly created user data
+    $userId = $pdo->lastInsertId();
+    $newUser = [
+        'userId' => $userId,
+        'nom' => $nomValue,
+        'prenom' => $prenomValue,
+        'email' => $email
+    ];
+    
     echo json_encode([
         'success' => true, 
-        'message' => 'Inscription réussie ! Vous pouvez maintenant vous connecter.',
-        'userId' => $pdo->lastInsertId()
+        'message' => 'Inscription réussie !',
+        'user' => $newUser
     ]);
     
 } catch(PDOException $e) {

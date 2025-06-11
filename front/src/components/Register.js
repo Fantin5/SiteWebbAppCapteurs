@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../services/api';
 
-const Register = ({ onSwitch }) => {
+const Register = ({ onSwitch, onLogin }) => {
   const [formData, setFormData] = useState({
     nom: '',
     prenom: '',
@@ -32,6 +32,9 @@ const Register = ({ onSwitch }) => {
         setMessage(result.message);
         setIsSuccess(true);
         setFormData({ nom: '', prenom: '', email: '', password: '' });
+        setTimeout(() => {
+          onLogin(result.user);
+        }, 1000);
       } else {
         setMessage(result.message);
         setIsSuccess(false);
