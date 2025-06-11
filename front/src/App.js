@@ -36,6 +36,16 @@ function App() {
     }
   };
 
+  // For dashboard, render without container constraints
+  if (currentPage === 'dashboard') {
+    return (
+      <div className="App">
+        {renderPage()}
+      </div>
+    );
+  }
+
+  // For other pages, use the centered container
   return (
     <div className="App">
       <div className="container">
