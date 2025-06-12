@@ -21,5 +21,27 @@ export const api = {
       body: `nom=${encodeURIComponent(nom)}&prenom=${encodeURIComponent(prenom)}&email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
     });
     return response.json();
+  },
+
+  forgotPassword: async (email) => {
+    const response = await fetch(`${API_BASE_URL}/forgot-password.php`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `email=${encodeURIComponent(email)}`
+    });
+    return response.json();
+  },
+
+  resetPassword: async (token, password) => {
+    const response = await fetch(`${API_BASE_URL}/reset-password.php`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: `token=${encodeURIComponent(token)}&password=${encodeURIComponent(password)}`
+    });
+    return response.json();
   }
 };
