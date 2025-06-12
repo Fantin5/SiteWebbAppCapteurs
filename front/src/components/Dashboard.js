@@ -162,9 +162,18 @@ const Dashboard = ({ user, onLogout }) => {
       return;
     }
 
-    const headers = ['Timestamp', 'Date', 'Time', 'Temperature (°C)', 'Humidity (%)', 'Pressure (hPa)', 'Light (lux)', 'Motor Speed (%)'];
+    const headers = [
+      'Date',
+      'Heure',
+      'Temperature_Celsius',
+      'Humidite_Pourcentage',
+      'Pression_hPa',
+      'Luminosite_Lux',
+      'Vitesse_Moteur_Pourcentage'
+    ];
+    
     const csvContent = [
-      headers.join(','),
+      headers.join(';'),
       ...sensorHistory.map(entry => {
         const date = new Date(entry.timestamp);
         const temp = entry.sensors.find(s => s.id === 1);
@@ -173,23 +182,22 @@ const Dashboard = ({ user, onLogout }) => {
         const light = entry.sensors.find(s => s.id === 4);
         
         return [
-          entry.timestamp,
-          date.toLocaleDateString(),
-          date.toLocaleTimeString(),
-          temp && temp.status === 'active' ? temp.value : 'N/A',
-          humidity && humidity.status === 'active' ? humidity.value : 'N/A',
-          pressure && pressure.status === 'active' ? pressure.value : 'N/A',
-          light && light.status === 'active' ? light.value : 'N/A',
-          entry.motorSpeed
-        ].join(',');
+          date.toLocaleDateString('fr-FR'),
+          date.toLocaleTimeString('fr-FR'),
+          temp && temp.status === 'active' ? temp.value.toFixed(1) : 'Inactif',
+          humidity && humidity.status === 'active' ? humidity.value.toFixed(0) : 'Inactif',
+          pressure && pressure.status === 'active' ? pressure.value.toFixed(1) : 'Inactif',
+          light && light.status === 'active' ? light.value.toFixed(0) : 'Inactif',
+          entry.motorSpeed.toFixed(0)
+        ].join(';');
       })
     ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `all_sensors_data_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `donnees_capteurs_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -219,25 +227,50 @@ const Dashboard = ({ user, onLogout }) => {
       return;
     }
 
-    const headers = ['Timestamp', 'Date', 'Time', `${sensor.name} (${sensor.unit.trim()})`];
+    // Get unit without leading/trailing spaces
+    const unit = sensor.unit.trim();
+    const unitSuffix = unit ? `_${unit.replace(/[^a-zA-Z0-9]/g, '')}` : '';
+    
+    const headers = [
+      'Date',
+      'Heure',
+      'Timestamp_ISO',
+      `${sensor.name.replace(/\s+/g, '_')}${unitSuffix}`,
+      'Valeur_Numerique'
+    ];
+    
     const csvContent = [
-      headers.join(','),
+      headers.join(';'),
       ...sensorData.map(entry => {
         const date = new Date(entry.timestamp);
+        let numericValue = entry.value;
+        
+        // Format numeric value based on sensor type
+        if (sensor.id === 1) { // Temperature
+          numericValue = numericValue.toFixed(1);
+        } else if (sensor.id === 2) { // Humidity
+          numericValue = numericValue.toFixed(0);
+        } else if (sensor.id === 3) { // Pressure
+          numericValue = numericValue.toFixed(1);
+        } else if (sensor.id === 4) { // Light
+          numericValue = numericValue.toFixed(0);
+        }
+        
         return [
-          entry.timestamp,
-          date.toLocaleDateString(),
-          date.toLocaleTimeString(),
-          entry.value
-        ].join(',');
+          date.toLocaleDateString('fr-FR'),
+          date.toLocaleTimeString('fr-FR'),
+          date.toISOString(),
+          `${numericValue}${unit}`,
+          numericValue
+        ].join(';');
       })
     ].join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `${sensor.name.replace(/\s+/g, '_')}_data_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `${sensor.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
