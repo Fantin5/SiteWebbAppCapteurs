@@ -8,6 +8,7 @@ const Login = ({ onLogin, onSwitch }) => {
   });
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -18,6 +19,8 @@ const Login = ({ onLogin, onSwitch }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsLoading(true);
+    
     try {
       const result = await api.login(formData.email, formData.password);
       
@@ -34,6 +37,8 @@ const Login = ({ onLogin, onSwitch }) => {
     } catch (error) {
       setMessage('Erreur de connexion au serveur.');
       setIsSuccess(false);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -55,6 +60,7 @@ const Login = ({ onLogin, onSwitch }) => {
             value={formData.email}
             onChange={handleChange}
             required
+            disabled={isLoading}
           />
         </div>
         <div className="form-group">
@@ -66,10 +72,28 @@ const Login = ({ onLogin, onSwitch }) => {
             value={formData.password}
             onChange={handleChange}
             required
+            disabled={isLoading}
           />
+          <div className="forgot-password">
+            <button
+              type="button"
+              className="link-button"
+              onClick={() => onSwitch('forgot-password')}
+              disabled={isLoading}
+            >
+              Mot de passe oublié ?
+            </button>
+          </div>
         </div>
-        <button type="submit" className="btn">Se connecter</button>
-        <button type="button" className="btn back-btn" onClick={() => onSwitch('home')}>
+        <button type="submit" className="btn" disabled={isLoading}>
+          {isLoading ? 'Connexion...' : 'Se connecter'}
+        </button>
+        <button
+          type="button"
+          className="btn back-btn"
+          onClick={() => onSwitch('home')}
+          disabled={isLoading}
+        >
           Retour
         </button>
       </form>
