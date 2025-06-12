@@ -4,6 +4,8 @@ import Home from './components/Home';
 import Login from './components/Login';
 import Register from './components/Register';
 import Dashboard from './components/Dashboard';
+import ForgotPassword from './components/ForgotPassword';
+import ResetPassword from './components/ResetPassword';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
@@ -29,6 +31,10 @@ function App() {
         return <Login onLogin={handleLogin} onSwitch={handlePageSwitch} />;
       case 'register':
         return <Register onSwitch={handlePageSwitch} onLogin={handleLogin} />;
+      case 'forgot-password':
+        return <ForgotPassword onSwitch={handlePageSwitch} />;
+      case 'reset-password':
+        return <ResetPassword onSwitch={handlePageSwitch} />;
       case 'dashboard':
         return <Dashboard user={user} onLogout={handleLogout} />;
       default:
