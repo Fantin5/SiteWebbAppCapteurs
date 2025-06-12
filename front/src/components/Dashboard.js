@@ -1,18 +1,133 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const Dashboard = ({ user, onLogout }) => {
   const [sensors, setSensors] = useState([
-    { id: 1, name: 'Capteur Température', status: 'active', value: '22.5°C' },
-    { id: 2, name: 'Capteur Humidité', status: 'inactive', value: '65%' },
-    { id: 3, name: 'Capteur Pression', status: 'active', value: '1013.2 hPa' },
-    { id: 4, name: 'Capteur Luminosité', status: 'active', value: '350 lux' }
+    { id: 1, name: 'Capteur Température', status: 'active', value: '22.5°C', unit: '°C', min: 18, max: 30, currentValue: 22.5 },
+    { id: 2, name: 'Capteur Humidité', status: 'inactive', value: '65%', unit: '%', min: 40, max: 80, currentValue: 65 },
+    { id: 3, name: 'Capteur Pression', status: 'active', value: '1013.2 hPa', unit: ' hPa', min: 990, max: 1030, currentValue: 1013.2 },
+    { id: 4, name: 'Capteur Luminosité', status: 'active', value: '350 lux', unit: ' lux', min: 0, max: 1000, currentValue: 350 }
   ]);
   const [motorSpeed, setMotorSpeed] = useState(0);
   const [motorRunning, setMotorRunning] = useState(false);
+  const [sensorHistory, setSensorHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [selectedSensorForChart, setSelectedSensorForChart] = useState(null);
+  const [dataCollectionStarted, setDataCollectionStarted] = useState(false);
+
+  // Use refs to access current values inside the interval without dependencies
+  const motorSpeedRef = useRef(motorSpeed);
+  const dataCollectionStartedRef = useRef(dataCollectionStarted);
+  const intervalRef = useRef(null);
+
+  // Update refs when state changes
+  useEffect(() => {
+    motorSpeedRef.current = motorSpeed;
+  }, [motorSpeed]);
+
+  useEffect(() => {
+    dataCollectionStartedRef.current = dataCollectionStarted;
+  }, [dataCollectionStarted]);
 
   useEffect(() => {
     setMotorRunning(motorSpeed > 0);
   }, [motorSpeed]);
+
+  // Generate random coherent values every 10 seconds - FIXED
+  useEffect(() => {
+    // Clear any existing interval to prevent duplicates
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+
+    intervalRef.current = setInterval(() => {
+      const timestamp = new Date();
+      
+      setSensors(prevSensors => {
+        const updatedSensors = prevSensors.map(sensor => {
+          if (sensor.status === 'active') {
+            // Generate coherent random values within realistic ranges
+            let newValue;
+            const variation = 0.05; // 5% variation for more realistic changes
+            const currentVal = sensor.currentValue;
+            const minVal = sensor.min;
+            const maxVal = sensor.max;
+            
+            // Add small random variation to current value
+            const change = (Math.random() - 0.5) * 2 * variation * currentVal;
+            newValue = Math.max(minVal, Math.min(maxVal, currentVal + change));
+            
+            // Round based on sensor type
+            if (sensor.id === 1) { // Temperature
+              newValue = Math.round(newValue * 10) / 10;
+            } else if (sensor.id === 2) { // Humidity
+              newValue = Math.round(newValue);
+            } else if (sensor.id === 3) { // Pressure
+              newValue = Math.round(newValue * 10) / 10;
+            } else if (sensor.id === 4) { // Light
+              newValue = Math.round(newValue);
+            }
+            
+            return {
+              ...sensor,
+              currentValue: newValue,
+              value: `${newValue}${sensor.unit}`
+            };
+          }
+          return sensor;
+        });
+        
+        // Only add to history if there are active sensors
+        const hasActiveSensors = updatedSensors.some(sensor => sensor.status === 'active');
+        if (hasActiveSensors) {
+          // Update dataCollectionStarted if not already started
+          if (!dataCollectionStartedRef.current) {
+            setDataCollectionStarted(true);
+          }
+          
+          // Use ref to get current motor speed without causing dependency issues
+          const historyEntry = {
+            timestamp: timestamp.toISOString(),
+            sensors: updatedSensors.map(sensor => ({
+              id: sensor.id,
+              name: sensor.name,
+              value: sensor.currentValue,
+              unit: sensor.unit,
+              status: sensor.status
+            })),
+            motorSpeed: motorSpeedRef.current
+          };
+          
+          setSensorHistory(prev => {
+            // Prevent duplicate entries with the same timestamp
+            const lastEntry = prev[prev.length - 1];
+            if (lastEntry && lastEntry.timestamp === historyEntry.timestamp) {
+              return prev; // Don't add duplicate
+            }
+            return [...prev, historyEntry].slice(-1000); // Keep last 1000 entries
+          });
+        }
+        
+        return updatedSensors;
+      });
+    }, 10000); // Every 10 seconds
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, []); // Empty dependencies - interval runs once and never restarts
+
+  // Cleanup interval on component unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, []);
 
   const toggleSensor = (id) => {
     setSensors(prevSensors =>
@@ -41,20 +156,123 @@ const Dashboard = ({ user, onLogout }) => {
     setMotorSpeed(0);
   };
 
+  const exportToCSV = () => {
+    if (sensorHistory.length === 0) {
+      alert('Aucune donnée à exporter. Attendez que les capteurs collectent des données.');
+      return;
+    }
+
+    const headers = ['Timestamp', 'Date', 'Time', 'Temperature (°C)', 'Humidity (%)', 'Pressure (hPa)', 'Light (lux)', 'Motor Speed (%)'];
+    const csvContent = [
+      headers.join(','),
+      ...sensorHistory.map(entry => {
+        const date = new Date(entry.timestamp);
+        const temp = entry.sensors.find(s => s.id === 1);
+        const humidity = entry.sensors.find(s => s.id === 2);
+        const pressure = entry.sensors.find(s => s.id === 3);
+        const light = entry.sensors.find(s => s.id === 4);
+        
+        return [
+          entry.timestamp,
+          date.toLocaleDateString(),
+          date.toLocaleTimeString(),
+          temp && temp.status === 'active' ? temp.value : 'N/A',
+          humidity && humidity.status === 'active' ? humidity.value : 'N/A',
+          pressure && pressure.status === 'active' ? pressure.value : 'N/A',
+          light && light.status === 'active' ? light.value : 'N/A',
+          entry.motorSpeed
+        ].join(',');
+      })
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `all_sensors_data_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportSensorToCSV = (sensorId) => {
+    if (sensorHistory.length === 0) {
+      alert('Aucune donnée à exporter. Attendez que les capteurs collectent des données.');
+      return;
+    }
+
+    const sensor = sensors.find(s => s.id === sensorId);
+    const sensorData = sensorHistory
+      .map(entry => {
+        const sensorEntry = entry.sensors.find(s => s.id === sensorId);
+        return {
+          timestamp: entry.timestamp,
+          value: sensorEntry ? sensorEntry.value : null,
+          status: sensorEntry ? sensorEntry.status : 'inactive'
+        };
+      })
+      .filter(entry => entry.status === 'active' && entry.value !== null);
+
+    if (sensorData.length === 0) {
+      alert(`Aucune donnée active trouvée pour ${sensor.name}.`);
+      return;
+    }
+
+    const headers = ['Timestamp', 'Date', 'Time', `${sensor.name} (${sensor.unit.trim()})`];
+    const csvContent = [
+      headers.join(','),
+      ...sensorData.map(entry => {
+        const date = new Date(entry.timestamp);
+        return [
+          entry.timestamp,
+          date.toLocaleDateString(),
+          date.toLocaleTimeString(),
+          entry.value
+        ].join(',');
+      })
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${sensor.name.replace(/\s+/g, '_')}_data_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const clearHistory = () => {
+    setSensorHistory([]);
+    setDataCollectionStarted(false);
+    alert('Historique des données effacé.');
+  };
+
+  const showSensorChart = (sensorId) => {
+    setSelectedSensorForChart(sensorId);
+  };
+
+  const getSensorChartData = (sensorId) => {
+    return sensorHistory
+      .map(entry => {
+        const sensorEntry = entry.sensors.find(s => s.id === sensorId);
+        return {
+          timestamp: new Date(entry.timestamp),
+          value: sensorEntry && sensorEntry.status === 'active' ? sensorEntry.value : null
+        };
+      })
+      .filter(entry => entry.value !== null);
+  };
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header">
         <div className="logo-section">
           <div className="logo">
-            <svg width="40" height="40" viewBox="0 0 100 100" fill="none">
-              <rect x="20" y="20" width="60" height="60" rx="8" stroke="#667eea" strokeWidth="3" fill="none"/>
-              <circle cx="35" cy="35" r="3" fill="#667eea"/>
-              <circle cx="65" cy="35" r="3" fill="#667eea"/>
-              <circle cx="35" cy="65" r="3" fill="#667eea"/>
-              <circle cx="65" cy="65" r="3" fill="#667eea"/>
-              <path d="M35 35 L65 35 L65 65 L35 65 Z" stroke="#667eea" strokeWidth="2" fill="rgba(102, 126, 234, 0.1)"/>
-            </svg>
-            <h1>ZenHome</h1>
+            <img src="/logo-zenhome.png" alt="ZenHome Logo" className="logo-image" />
+            
           </div>
         </div>
         <div className="user-section">
@@ -96,12 +314,28 @@ const Dashboard = ({ user, onLogout }) => {
                       {sensor.status === 'active' ? 'Actif' : 'Inactif'}
                     </span>
                   </div>
-                  <button
-                    className={`btn sensor-toggle ${sensor.status === 'active' ? 'stop-btn' : 'start-btn'}`}
-                    onClick={() => toggleSensor(sensor.id)}
-                  >
-                    {sensor.status === 'active' ? 'Arrêter' : 'Démarrer'}
-                  </button>
+                  <div className="sensor-actions">
+                    <button
+                      className={`btn sensor-toggle ${sensor.status === 'active' ? 'stop-btn' : 'start-btn'}`}
+                      onClick={() => toggleSensor(sensor.id)}
+                    >
+                      {sensor.status === 'active' ? 'Arrêter' : 'Démarrer'}
+                    </button>
+                    <button
+                      className="btn chart-btn"
+                      onClick={() => showSensorChart(sensor.id)}
+                      disabled={getSensorChartData(sensor.id).length === 0}
+                    >
+                      Graphique
+                    </button>
+                    <button
+                      className="btn export-individual-btn"
+                      onClick={() => exportSensorToCSV(sensor.id)}
+                      disabled={sensorHistory.length === 0}
+                    >
+                      CSV
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -145,8 +379,260 @@ const Dashboard = ({ user, onLogout }) => {
               </div>
             </div>
           </section>
+
+          <section className="data-export-card">
+            <h2>Historique des Données</h2>
+            <div className="export-controls">
+              <div className="export-info">
+                <p><strong>Données collectées:</strong> {sensorHistory.length} entrées</p>
+                <p><strong>Collecte:</strong> {dataCollectionStarted ? 'En cours (toutes les 10s)' : 'Pas encore démarrée'}</p>
+                {sensorHistory.length > 0 && (
+                  <p><strong>Dernière collecte:</strong> {new Date(sensorHistory[sensorHistory.length - 1].timestamp).toLocaleString('fr-FR')}</p>
+                )}
+              </div>
+              <div className="export-buttons">
+                <button className="btn export-btn" onClick={exportToCSV} disabled={sensorHistory.length === 0}>
+                  Exporter Tout (CSV)
+                </button>
+                <button className="btn view-btn" onClick={() => setShowHistory(!showHistory)}>
+                  {showHistory ? 'Masquer' : 'Voir'} Historique
+                </button>
+                <button className="btn clear-btn" onClick={clearHistory} disabled={sensorHistory.length === 0}>
+                  Effacer Historique
+                </button>
+              </div>
+            </div>
+            
+            {showHistory && sensorHistory.length > 0 && (
+              <div className="history-table">
+                <h3>Dernières 10 entrées</h3>
+                <div className="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Heure</th>
+                        <th>Temp (°C)</th>
+                        <th>Humidité (%)</th>
+                        <th>Pression (hPa)</th>
+                        <th>Lumière (lux)</th>
+                        <th>Moteur (%)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sensorHistory.slice(-10).reverse().map((entry, index) => {
+                        const date = new Date(entry.timestamp);
+                        const temp = entry.sensors.find(s => s.id === 1);
+                        const humidity = entry.sensors.find(s => s.id === 2);
+                        const pressure = entry.sensors.find(s => s.id === 3);
+                        const light = entry.sensors.find(s => s.id === 4);
+                        
+                        return (
+                          <tr key={index}>
+                            <td>{date.toLocaleDateString('fr-FR')}</td>
+                            <td>{date.toLocaleTimeString('fr-FR')}</td>
+                            <td className={temp?.status === 'active' ? 'active' : 'inactive'}>
+                              {temp?.status === 'active' ? temp.value : 'Inactif'}
+                            </td>
+                            <td className={humidity?.status === 'active' ? 'active' : 'inactive'}>
+                              {humidity?.status === 'active' ? humidity.value : 'Inactif'}
+                            </td>
+                            <td className={pressure?.status === 'active' ? 'active' : 'inactive'}>
+                              {pressure?.status === 'active' ? pressure.value : 'Inactif'}
+                            </td>
+                            <td className={light?.status === 'active' ? 'active' : 'inactive'}>
+                              {light?.status === 'active' ? light.value : 'Inactif'}
+                            </td>
+                            <td>{entry.motorSpeed}%</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {selectedSensorForChart && (
+            <section className="chart-card">
+              <h2>Graphique - {sensors.find(s => s.id === selectedSensorForChart)?.name}</h2>
+              <div className="chart-container">
+                <div className="chart-header">
+                  <button className="btn close-chart-btn" onClick={() => setSelectedSensorForChart(null)}>
+                    Fermer
+                  </button>
+                  <button 
+                    className="btn export-chart-btn" 
+                    onClick={() => exportSensorToCSV(selectedSensorForChart)}
+                  >
+                    Exporter CSV
+                  </button>
+                </div>
+                <SensorChart 
+                  data={getSensorChartData(selectedSensorForChart)}
+                  sensor={sensors.find(s => s.id === selectedSensorForChart)}
+                />
+              </div>
+            </section>
+          )}
         </div>
       </main>
+    </div>
+  );
+};
+
+// Simple chart component using SVG
+const SensorChart = ({ data, sensor }) => {
+  if (!data || data.length === 0) {
+    return <div className="no-data">Aucune donnée disponible pour ce capteur.</div>;
+  }
+
+  const width = 800;
+  const height = 300;
+  const margin = { top: 20, right: 30, bottom: 60, left: 60 };
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = height - margin.top - margin.bottom;
+
+  // Calculate scales
+  const minValue = Math.min(...data.map(d => d.value));
+  const maxValue = Math.max(...data.map(d => d.value));
+  const valueRange = maxValue - minValue || 1;
+  const padding = valueRange * 0.1;
+
+  const minTime = Math.min(...data.map(d => d.timestamp.getTime()));
+  const maxTime = Math.max(...data.map(d => d.timestamp.getTime()));
+
+  const getX = (timestamp) => {
+    return ((timestamp.getTime() - minTime) / (maxTime - minTime)) * chartWidth;
+  };
+
+  const getY = (value) => {
+    return chartHeight - ((value - minValue + padding) / (valueRange + 2 * padding)) * chartHeight;
+  };
+
+  // Create path
+  const pathData = data.map((d, i) => {
+    const x = getX(d.timestamp);
+    const y = getY(d.value);
+    return i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`;
+  }).join(' ');
+
+  return (
+    <div className="chart-svg-container">
+      <svg width={width} height={height} className="sensor-chart">
+        <defs>
+          <linearGradient id="chartGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#667eea" stopOpacity="0.8"/>
+            <stop offset="100%" stopColor="#667eea" stopOpacity="0.1"/>
+          </linearGradient>
+        </defs>
+        
+        {/* Chart area background */}
+        <rect 
+          x={margin.left} 
+          y={margin.top} 
+          width={chartWidth} 
+          height={chartHeight} 
+          fill="#f8f9fa" 
+          stroke="#e9ecef"
+        />
+        
+        {/* Grid lines */}
+        {[0, 0.25, 0.5, 0.75, 1].map(ratio => (
+          <line
+            key={ratio}
+            x1={margin.left}
+            y1={margin.top + ratio * chartHeight}
+            x2={margin.left + chartWidth}
+            y2={margin.top + ratio * chartHeight}
+            stroke="#e9ecef"
+            strokeDasharray="2,2"
+          />
+        ))}
+        
+        {/* Chart line */}
+        <path
+          d={pathData}
+          fill="none"
+          stroke="#667eea"
+          strokeWidth="3"
+          transform={`translate(${margin.left}, ${margin.top})`}
+        />
+        
+        {/* Data points */}
+        {data.map((d, i) => (
+          <circle
+            key={i}
+            cx={margin.left + getX(d.timestamp)}
+            cy={margin.top + getY(d.value)}
+            r="4"
+            fill="#667eea"
+            stroke="white"
+            strokeWidth="2"
+          />
+        ))}
+        
+        {/* Y-axis labels */}
+        {[0, 0.25, 0.5, 0.75, 1].map(ratio => {
+          const value = minValue - padding + ratio * (valueRange + 2 * padding);
+          return (
+            <text
+              key={ratio}
+              x={margin.left - 10}
+              y={margin.top + (1 - ratio) * chartHeight + 4}
+              textAnchor="end"
+              fontSize="12"
+              fill="#666"
+            >
+              {value.toFixed(1)}
+            </text>
+          );
+        })}
+        
+        {/* X-axis labels */}
+        {data.filter((_, i) => i % Math.max(1, Math.floor(data.length / 5)) === 0).map((d, i) => (
+          <text
+            key={i}
+            x={margin.left + getX(d.timestamp)}
+            y={height - 20}
+            textAnchor="middle"
+            fontSize="10"
+            fill="#666"
+          >
+            {d.timestamp.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+          </text>
+        ))}
+        
+        {/* Axis labels */}
+        <text
+          x={margin.left + chartWidth / 2}
+          y={height - 5}
+          textAnchor="middle"
+          fontSize="14"
+          fill="#333"
+        >
+          Heure
+        </text>
+        
+        <text
+          x={15}
+          y={margin.top + chartHeight / 2}
+          textAnchor="middle"
+          fontSize="14"
+          fill="#333"
+          transform={`rotate(-90 15 ${margin.top + chartHeight / 2})`}
+        >
+          {sensor.name} ({sensor.unit.trim()})
+        </text>
+      </svg>
+      
+      <div className="chart-stats">
+        <p><strong>Points de données:</strong> {data.length}</p>
+        <p><strong>Valeur min:</strong> {minValue.toFixed(1)}{sensor.unit}</p>
+        <p><strong>Valeur max:</strong> {maxValue.toFixed(1)}{sensor.unit}</p>
+        <p><strong>Moyenne:</strong> {(data.reduce((sum, d) => sum + d.value, 0) / data.length).toFixed(1)}{sensor.unit}</p>
+      </div>
     </div>
   );
 };
