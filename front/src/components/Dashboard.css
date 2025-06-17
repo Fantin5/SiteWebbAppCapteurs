@@ -1,0 +1,267 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap");
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  background: #f0f4f8;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: row; /* ligne, par défaut */
+  height: 100vh; /* optionnel, pour prendre toute la hauteur */
+  width: 100vw;
+}
+
+.profile-container {
+  width: 300px; /* largeur fixe à gauche */
+  padding: 30px;
+  background: #fff;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+  box-sizing: border-box;
+}
+
+.dashboard {
+  flex: 1; /* prend tout l'espace restant */
+  padding: 30px;
+  box-sizing: border-box;
+  overflow-y: auto; /* si besoin pour le scroll vertical */
+}
+
+
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* pour plus de flexibilité */
+  gap: 30px;
+  width: 100%;
+  /* Pas de max-width ici pour éviter de restreindre */
+}
+
+.device-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 12px 24px rgb(0 0 0 / 0.1);
+  padding: 25px 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: 100%; /* pour s'assurer que les cards remplissent leur colonne */
+}
+
+.device-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.device-name {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.device-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+
+.device-badge.green {
+  background-color: #4caf50;
+  color: white;
+}
+
+.device-badge.red {
+  background-color: #f44336;
+  color: white;
+}
+
+
+.dashboard {
+  padding: 30px;
+  min-height: 100vh;
+  box-sizing: border-box;
+  max-width: 100vw;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #f0f4f8;
+}
+
+.dashboard-title {
+  width: 100%;
+  max-width: 1200px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 2.5rem;
+  margin-bottom: 40px;
+  color: #212121;
+}
+
+.device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 30px;
+  width: 100%;
+  max-width: 1200px;
+  box-sizing: border-box;
+}
+
+.device-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 12px 24px rgb(0 0 0 / 0.1);
+  padding: 25px 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  height: 100%;
+}
+
+.device-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 20px 40px rgb(0 0 0 / 0.15);
+}
+
+.capteur {
+  border-left: 6px solid #4caf50;
+}
+
+.actionneur {
+  border-left: 6px solid #f44336;
+}
+
+.device-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.device-name {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #212121;
+  margin: 0;
+}
+
+.device-badge {
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  color: white;
+  user-select: none;
+}
+
+.device-badge.green {
+  background-color: #4caf50;
+  box-shadow: 0 0 8px #4caf50aa;
+}
+
+.device-badge.red {
+  background-color: #f44336;
+  box-shadow: 0 0 8px #f44336aa;
+}
+
+.device-body {
+  min-height: 80px;
+  padding-top: 10px;
+  border-top: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.sensor-value {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.sensor-unit {
+  font-size: 1rem;
+  color: #555;
+  margin-left: 4px;
+}
+
+.sensor-date {
+  font-size: 0.9rem;
+  color: #777;
+}
+
+.device-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+  justify-content: center;
+}
+
+.btn {
+  cursor: pointer;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: white;
+  box-shadow: 0 3px 6px rgb(0 0 0 / 0.15);
+  transition: background-color 0.3s ease;
+  flex: 1 1 45%;
+  max-width: 140px;
+  text-align: center;
+}
+
+.btn-on {
+  background-color: #4caf50;
+}
+
+.btn-on:hover {
+  background-color: #388e3c;
+}
+
+.btn-off {
+  background-color: #f44336;
+}
+
+.btn-off:hover {
+  background-color: #d32f2f;
+}
+
+.btn-graph {
+  background-color: #1976d2;
+}
+
+.btn-graph:hover {
+  background-color: #115293;
+}
+
+.btn-csv {
+  background-color: #ff9800;
+  color: #fff;
+}
+
+.btn-csv:hover {
+  background-color: #c77700;
+}
+
+.graph-container {
+  margin-top: 20px;
+  width: 100%;
+  height: 250px;
+}
