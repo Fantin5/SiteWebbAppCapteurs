@@ -14,8 +14,7 @@ const unitMap = {
   "Capteur lumière": "lux",
   "Capteur Température": "°C",
   "Capteur Humidité": "%",
-  distance: "cm",
-  // Ajoute d'autres capteurs ici si besoin
+  "Capteur de distance": "cm",
 };
 
 export default function Dashboard() {
@@ -34,6 +33,17 @@ export default function Dashboard() {
   const [graphData, setGraphData] = useState([]);
   const [graphLoading, setGraphLoading] = useState(false);
   const [graphError, setGraphError] = useState(null);
+
+  // Etats actionneurs stockés localement {id: état}
+  const [actionneurEtats, setActionneurEtats] = useState({});
+
+  // Seuils température et luminosité modifiables
+  const [seuilTemperature, setSeuilTemperature] = useState(25);
+  const [seuilLuminosite, setSeuilLuminosite] = useState(300);
+
+  // Valeurs saisies dans le formulaire (pour contrôle)
+  const [tempInput, setTempInput] = useState(seuilTemperature);
+  const [lumInput, setLumInput] = useState(seuilLuminosite);
 
   // Chargement profil utilisateur (exemple user_id=1)
   useEffect(() => {
@@ -62,6 +72,12 @@ export default function Dashboard() {
       .then((data) => {
         setDevices(data);
         setLoading(false);
+        // Initialisation états à 0
+        const etatsInit = {};
+        data.forEach(({ id }) => {
+          etatsInit[id] = 0;
+        });
+        setActionneurEtats(etatsInit);
       })
       .catch((e) => {
         setError(e.message);
@@ -135,9 +151,112 @@ export default function Dashboard() {
       });
   };
 
+  // Automatisation volet selon seuils avec priorité température
+  const appliquerAutomatiqueVolet = (devices, etats) => {
+    const capteurTemp = devices.find(d => d.nom.toLowerCase().includes("température") && d.is_capteur);
+    const capteurLum = devices.find(d => d.nom.toLowerCase().includes("lumière") && d.is_capteur);
+
+    const voletServo = devices.find(d => d.nom.toLowerCase().includes("servo") && !d.is_capteur);
+    const voletMoteur = devices.find(d => d.nom.toLowerCase().includes("moteur") && !d.is_capteur);
+
+    if (!voletServo && !voletMoteur) return etats;
+
+    const tempVal = capteurTemp ? Number(capteurTemp.valeur) : null;
+    const lumVal = capteurLum ? Number(capteurLum.valeur) : null;
+
+    let nouvelEtat = { ...etats };
+
+    if (tempVal !== null && tempVal !== undefined) {
+      if (tempVal > seuilTemperature) {
+        // Temp élevée => volet fermé
+        if (voletServo) nouvelEtat[voletServo.id] = 0;
+        if (voletMoteur) nouvelEtat[voletMoteur.id] = 0;
+      } else {
+        // Temp basse => volet ouvert
+        if (voletServo) nouvelEtat[voletServo.id] = 1;
+        if (voletMoteur) nouvelEtat[voletMoteur.id] = 1;
+      }
+    } else if (lumVal !== null && lumVal !== undefined) {
+      if (lumVal < seuilLuminosite) {
+        // Luminosité faible => volet ouvert
+        if (voletServo) nouvelEtat[voletServo.id] = 1;
+        if (voletMoteur) nouvelEtat[voletMoteur.id] = 1;
+      } else {
+        // Luminosité forte => volet fermé
+        if (voletServo) nouvelEtat[voletServo.id] = 0;
+        if (voletMoteur) nouvelEtat[voletMoteur.id] = 0;
+      }
+    }
+
+    return nouvelEtat;
+  };
+
+  useEffect(() => {
+    if (devices.length === 0) return;
+    setActionneurEtats((prevEtats) => {
+      const nouveauxEtats = appliquerAutomatiqueVolet(devices, prevEtats);
+      const changed = Object.keys(nouveauxEtats).some(
+        (key) => nouveauxEtats[key] !== prevEtats[key]
+      );
+      return changed ? nouveauxEtats : prevEtats;
+    });
+  }, [devices, seuilTemperature, seuilLuminosite]);
+
+  const handleAllumer = (id) => {
+    setActionneurEtats((prev) => ({ ...prev, [id]: 1 }));
+  };
+
+  const handleEteindre = (id) => {
+    setActionneurEtats((prev) => ({ ...prev, [id]: 0 }));
+  };
+
+  const getEtatLisible = (device) => {
+    const etat = actionneurEtats[device.id];
+    if (device.is_capteur) {
+      return etat === 1 ? "Allumé" : "Éteint";
+    } else {
+      if (device.nom.toLowerCase().includes("servo")) {
+        if (etat === 0) return "Fermé";
+        if (etat === 1) return "Ouvert";
+        return "Inconnu";
+      }
+      if (device.nom.toLowerCase().includes("moteur")) {
+        if (etat === 0) return "Fermé";
+        if (etat === 1) return "Ouvert";
+        return "Inconnu";
+      }
+      return etat === 1 ? "Allumé" : "Éteint";
+    }
+  };
+
+  // Validation et application seuils depuis formulaire
+  const handleSeuilsSubmit = (e) => {
+    e.preventDefault();
+
+    const tempVal = Number(tempInput);
+    const lumVal = Number(lumInput);
+
+    if (isNaN(tempVal) || isNaN(lumVal)) {
+      alert("Merci d'entrer des valeurs numériques valides.");
+      return;
+    }
+    if (tempVal < -50 || tempVal > 100) {
+      alert("Température doit être entre -50 et 100 °C.");
+      return;
+    }
+    if (lumVal < 0) {
+      alert("Luminosité doit être positive.");
+      return;
+    }
+
+    setSeuilTemperature(tempVal);
+    setSeuilLuminosite(lumVal);
+    alert("Seuils mis à jour !");
+  };
+
   return (
     <div className="app-container">
-      {/* Profil utilisateur à gauche */}
+      {/* Colonne gauche: Profil + Paramètres seuils */}
       <div className="profile-container">
         <h2>Profil Utilisateur</h2>
         {profileLoading && <p>Chargement...</p>}
@@ -150,9 +269,42 @@ export default function Dashboard() {
             <p><strong>Admin :</strong> {profile.isAdmin ? "Oui" : "Non"}</p>
           </div>
         )}
+
+        <hr />
+
+        <div className="seuils-container">
+          <h3>Paramètres Automatique Volet</h3>
+          <form onSubmit={handleSeuilsSubmit} className="param-form">
+            <label>
+              Seuil Température (°C) :
+              <input
+                type="number"
+                value={tempInput}
+                onChange={(e) => setTempInput(e.target.value)}
+                step="0.1"
+                min="-50"
+                max="100"
+              />
+            </label>
+
+            <label>
+              Seuil Luminosité (lux) :
+              <input
+                type="number"
+                value={lumInput}
+                onChange={(e) => setLumInput(e.target.value)}
+                step="1"
+                min="0"
+              />
+            </label>
+
+            <button type="submit" className="btn btn-save">Enregistrer</button>
+          </form>
+        </div>
       </div>
 
-      {/* Dashboard à droite */}
+
+      {/* Dashboard droite */}
       <div className="dashboard">
         <h1 className="dashboard-title">Dashboard Capteurs & Actionneurs</h1>
 
@@ -187,32 +339,44 @@ export default function Dashboard() {
                       </p>
                     </>
                   ) : (
-                    <p>Pas de données à afficher</p>
+                    <p>Aucune donnée à afficher</p>
                   )}
                 </div>
 
-                {is_capteur && (
-                  <div className="device-actions">
-                    <button className="btn btn-on" onClick={() => alert(`Allumer ${nom}`)}>
-                      Allumer
-                    </button>
-                    <button className="btn btn-off" onClick={() => alert(`Éteindre ${nom}`)}>
-                      Éteindre
-                    </button>
-                    <button className="btn btn-graph" onClick={() => handleShowGraph(id)}>
-                      {activeGraphId === id ? "Cacher graphique" : "Afficher graphique"}
-                    </button>
-                    <button className="btn btn-csv" onClick={() => exportCSV(id, nom)}>
-                      Exporter CSV
-                    </button>
-                  </div>
-                )}
+                <p><strong>État :</strong> {getEtatLisible({ id, nom, is_capteur })}</p>
 
-                {activeGraphId === id && (
+                <div className="device-actions">
+                  <button className="btn btn-on" onClick={() => handleAllumer(id)}>
+                    Allumer
+                  </button>
+                  <button className="btn btn-off" onClick={() => handleEteindre(id)}>
+                    Éteindre
+                  </button>
+                  {is_capteur && (
+                    <>
+                      <button
+                        className="btn btn-graph"
+                        onClick={() => handleShowGraph(id)}
+                      >
+                        {activeGraphId === id ? "Cacher Graphique" : "Voir Graphique"}
+                      </button>
+                      <button
+                        className="btn btn-export"
+                        onClick={() => exportCSV(id, nom)}
+                      >
+                        Export CSV
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {activeGraphId === id && graphData.length > 0 && (
                   <div className="graph-container">
-                    {graphLoading && <p>Chargement du graphique...</p>}
-                    {graphError && <p style={{ color: "red" }}>Erreur: {graphError}</p>}
-                    {!graphLoading && !graphError && graphData.length > 0 && (
+                    {graphLoading ? (
+                      <p>Chargement graphique...</p>
+                    ) : graphError ? (
+                      <p style={{ color: "red" }}>Erreur graphique : {graphError}</p>
+                    ) : (
                       <ResponsiveContainer width="100%" height={250}>
                         <LineChart data={graphData}>
                           <CartesianGrid strokeDasharray="3 3" />
@@ -222,14 +386,11 @@ export default function Dashboard() {
                           <Line
                             type="monotone"
                             dataKey="valeur"
-                            stroke="#4caf50"
+                            stroke="#8884d8"
                             activeDot={{ r: 8 }}
                           />
                         </LineChart>
                       </ResponsiveContainer>
-                    )}
-                    {!graphLoading && !graphError && graphData.length === 0 && (
-                      <p>Aucune donnée pour ce capteur.</p>
                     )}
                   </div>
                 )}
