@@ -45,6 +45,10 @@ export default function Dashboard() {
   const [tempInput, setTempInput] = useState(seuilTemperature);
   const [lumInput, setLumInput] = useState(seuilLuminosite);
 
+  const handleLogout = () => {
+    window.location.href = '/login';
+  };
+
   // Chargement profil utilisateur (exemple user_id=1)
   useEffect(() => {
     fetch("http://localhost/SiteWebbAppCapteurs/backend/user.php?user_id=1")
@@ -72,7 +76,6 @@ export default function Dashboard() {
       .then((data) => {
         setDevices(data);
         setLoading(false);
-        // Initialisation états à 0
         const etatsInit = {};
         data.forEach(({ id }) => {
           etatsInit[id] = 0;
@@ -117,7 +120,7 @@ export default function Dashboard() {
       fetchGraphData(id);
     }
   };
-
+  
   const exportCSV = (id, nom) => {
     fetch(`http://localhost/SiteWebbAppCapteurs/backend/api.php?id_composant=${id}`)
       .then((res) => {
@@ -212,22 +215,22 @@ export default function Dashboard() {
 
   const getEtatLisible = (device) => {
     const etat = actionneurEtats[device.id];
+
+    if (etat === undefined) return "Inconnu";
+
     if (device.is_capteur) {
       return etat === 1 ? "Allumé" : "Éteint";
     } else {
       if (device.nom.toLowerCase().includes("servo")) {
-        if (etat === 0) return "Fermé";
-        if (etat === 1) return "Ouvert";
-        return "Inconnu";
+        return etat === 0 ? "Fermé" : etat === 1 ? "Ouvert" : "Inconnu";
       }
       if (device.nom.toLowerCase().includes("moteur")) {
-        if (etat === 0) return "Fermé";
-        if (etat === 1) return "Ouvert";
-        return "Inconnu";
+        return etat === 0 ? "Fermé" : etat === 1 ? "Ouvert" : "Inconnu";
       }
       return etat === 1 ? "Allumé" : "Éteint";
     }
   };
+
 
   // Validation et application seuils depuis formulaire
   const handleSeuilsSubmit = (e) => {
@@ -258,25 +261,31 @@ export default function Dashboard() {
     <div className="app-container">
       {/* Colonne gauche: Profil + Paramètres seuils */}
       <div className="profile-container">
+        <div className="profile-header">
+          <img src="logo-zenhome.png" alt="Logo Domotique" className="site-logo" />
+        </div>
         <h2>Profil Utilisateur</h2>
         {profileLoading && <p>Chargement...</p>}
         {profileError && <p style={{ color: "red" }}>Erreur : {profileError}</p>}
         {profile && (
-          <div>
+          <div className="profile-info">
             <p><strong>Nom :</strong> {profile.nom}</p>
             <p><strong>Prénom :</strong> {profile.prenom}</p>
             <p><strong>Email :</strong> {profile.email}</p>
-            <p><strong>Admin :</strong> {profile.isAdmin ? "Oui" : "Non"}</p>
+            <p><strong>Administrateur :</strong> {profile.isAdmin ? "Oui" : "Non"}</p>
+            <button className="btn-logout" onClick={handleLogout}>
+              Déconnexion
+            </button>
           </div>
         )}
 
         <hr />
 
         <div className="seuils-container">
-          <h3>Paramètres Automatique Volet</h3>
+          <h3>Paramètres </h3>
           <form onSubmit={handleSeuilsSubmit} className="param-form">
             <label>
-              Seuil Température (°C) :
+              Seuil Température (°C)
               <input
                 type="number"
                 value={tempInput}
@@ -288,7 +297,7 @@ export default function Dashboard() {
             </label>
 
             <label>
-              Seuil Luminosité (lux) :
+              Seuil Luminosité (lux)
               <input
                 type="number"
                 value={lumInput}
@@ -321,7 +330,9 @@ export default function Dashboard() {
                 className={`device-card ${is_capteur ? "capteur" : "actionneur"}`}
               >
                 <div className="device-header">
-                  <h2 className="device-name">{nom}</h2>
+                  <h2 className="device-name">
+                    {nom.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                  </h2>
                   <span className={`device-badge ${is_capteur ? "green" : "red"}`}>
                     {is_capteur ? "Capteur" : "Actionneur"}
                   </span>
@@ -331,19 +342,19 @@ export default function Dashboard() {
                   {is_capteur ? (
                     <>
                       <p className="sensor-value">
-                        Dernière valeur : {valeur !== null ? valeur : "N/A"}
+                        Dernière valeur: {valeur || "N/A"}
                         {unite && <span className="sensor-unit"> {unite}</span>}
                       </p>
                       <p className="sensor-date">
-                        Date : {date ? new Date(date).toLocaleString() : "N/A"}
+                        Date: {date ? new Date(date).toLocaleString() : "N/A"}
                       </p>
                     </>
                   ) : (
-                    <p>Aucune donnée à afficher</p>
+                    <p className="actionneur-state">
+                      État: {getEtatLisible({ id, nom, is_capteur })}
+                    </p>
                   )}
                 </div>
-
-                <p><strong>État :</strong> {getEtatLisible({ id, nom, is_capteur })}</p>
 
                 <div className="device-actions">
                   <button className="btn btn-on" onClick={() => handleAllumer(id)}>
