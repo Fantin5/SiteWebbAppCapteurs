@@ -10,10 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once 'db_local.php';
 
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-
-require 'vendor/autoload.php';
+require 'PHPMailer-master/PHPMailerAutoload.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -44,15 +41,15 @@ try {
     $stmt = $pdo->prepare("UPDATE user SET reset_token = ?, reset_token_expiry = ? WHERE email = ?");
     $stmt->execute([$resetToken, $tokenExpiry, $email]);
 
-    $mail = new PHPMailer(true);
-
+    $mail = new PHPMailer;
     $mail->isSMTP();
-    $mail->Host = 'smtp.gmail.com';
+    $mail->SMTPSecure = 'ssl';
     $mail->SMTPAuth = true;
+    $mail->Host = 'smtp.gmail.com';
+    $mail->Port = 465;
     $mail->Username = 'maximilin.lhote@gmail.com';
     $mail->Password = 'vfau elsc tshx rwed';
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-    $mail->Port = 587;
 
     $mail->setFrom('maximilien.lhote@gmail.com', 'ZenHome');
     $mail->addAddress($email);

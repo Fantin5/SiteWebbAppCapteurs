@@ -253,7 +253,6 @@ export default function Dashboard({ user }) {
       }
     } catch (error) {
       console.log(error);
-      alert("Erreur lors de l'allumage : " + error.message);
     }
   };
 }
@@ -277,7 +276,7 @@ export default function Dashboard({ user }) {
           throw new Error("Erreur lors de l'extinction");
         }
       } catch (error) {
-        alert("Erreur lors de l'extinction : " + error.message);
+        console.log(error);
       }
     };
   }
