@@ -13,16 +13,13 @@ const Register = ({ onSwitch, onLogin }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
       const result = await api.register(
         formData.nom,
@@ -30,19 +27,17 @@ const Register = ({ onSwitch, onLogin }) => {
         formData.email,
         formData.password
       );
-      
+
       if (result.success) {
         setMessage(result.message);
         setIsSuccess(true);
         setFormData({ nom: '', prenom: '', email: '', password: '' });
-        setTimeout(() => {
-          onLogin(result.user);
-        }, 1000);
+        setTimeout(() => onLogin(result.user), 1000);
       } else {
         setMessage(result.message);
         setIsSuccess(false);
       }
-    } catch (error) {
+    } catch {
       setMessage('Erreur de connexion au serveur.');
       setIsSuccess(false);
     } finally {
@@ -51,13 +46,23 @@ const Register = ({ onSwitch, onLogin }) => {
   };
 
   return (
-    <div>
-      <img 
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '40px 20px',
+        minHeight: '100vh',
+        backgroundColor: '#f5f5f5',
+      }}
+    >
+      <img
         src="logo-zenhome.png"
-        alt="Logo" 
-        style={{ 
-          width: 120, 
-          height: 'auto', 
+        alt="Logo"
+        style={{
+          width: 120,
+          height: 'auto',
           position: 'fixed',
           top: 20,
           left: 20,
@@ -69,51 +74,63 @@ const Register = ({ onSwitch, onLogin }) => {
 
       <div
         style={{
-          maxWidth: 1200,
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          padding: '40px 30px',
+          maxWidth: 600,
           width: '100%',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
           textAlign: 'center',
-          boxSizing: 'border-box',
-          backgroundColor :'white',
-          padding : '20px',
-          borderRadius :'8px',
         }}
       >
-        <h2 style={{ fontWeight: 600, fontSize: '2.5rem', color: '#212121', marginBottom: 10 }}>
+        <h2
+          style={{
+            fontWeight: 600,
+            fontSize: '2.5rem',
+            color: '#212121',
+            marginBottom: 10,
+          }}
+        >
           Inscription
         </h2>
 
-        <div 
-          style={{ 
-            width: 200, 
-            height: 4, 
-            margin: '0 auto 30px', 
-            borderRadius: 2, 
-            background: 'linear-gradient(to right, #4caf50, #2196f3)'
-          }} 
+        <div
+          style={{
+            width: 200,
+            height: 4,
+            margin: '0 auto 30px',
+            borderRadius: 2,
+            background: 'linear-gradient(to right, #4caf50, #2196f3)',
+          }}
         />
 
         {message && (
-          <div style={{
-            padding: '12px',
-            borderRadius: '8px',
-            marginBottom: '20px',
-            backgroundColor: isSuccess ? '#d4edda' : '#f8d7da',
-            color: isSuccess ? '#155724' : '#721c24',
-            border: `1px solid ${isSuccess ? '#c3e6cb' : '#f5c6cb'}`
-          }}>
+          <div
+            style={{
+              padding: '12px',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              backgroundColor: isSuccess ? '#d4edda' : '#f8d7da',
+              color: isSuccess ? '#155724' : '#721c24',
+              border: `1px solid ${isSuccess ? '#c3e6cb' : '#f5c6cb'}`,
+            }}
+          >
             {message}
           </div>
         )}
 
-        <div style={{ textAlign: 'left' }}>
+        <form onSubmit={handleSubmit} style={{ textAlign: 'left' }}>
           <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
             <div style={{ flex: 1 }}>
-              <label htmlFor="nom" style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontWeight: '500',
-                color: '#34495e'
-              }}>
+              <label
+                htmlFor="nom"
+                style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontWeight: '500',
+                  color: '#34495e',
+                }}
+              >
                 Nom:
               </label>
               <input
@@ -131,20 +148,24 @@ const Register = ({ onSwitch, onLogin }) => {
                   fontSize: '16px',
                   boxSizing: 'border-box',
                   transition: 'border-color 0.2s ease',
-                  outline: 'none'
+                  outline: 'none',
                 }}
-                onFocus={(e) => e.target.style.borderColor = '#2196f3'}
-                onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                onFocus={(e) => (e.target.style.borderColor = '#2196f3')}
+                onBlur={(e) => (e.target.style.borderColor = '#e0e0e0')}
+                required
               />
             </div>
 
             <div style={{ flex: 1 }}>
-              <label htmlFor="prenom" style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontWeight: '500',
-                color: '#34495e'
-              }}>
+              <label
+                htmlFor="prenom"
+                style={{
+                  display: 'block',
+                  marginBottom: '8px',
+                  fontWeight: '500',
+                  color: '#34495e',
+                }}
+              >
                 Prénom:
               </label>
               <input
@@ -162,21 +183,25 @@ const Register = ({ onSwitch, onLogin }) => {
                   fontSize: '16px',
                   boxSizing: 'border-box',
                   transition: 'border-color 0.2s ease',
-                  outline: 'none'
+                  outline: 'none',
                 }}
-                onFocus={(e) => e.target.style.borderColor = '#2196f3'}
-                onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+                onFocus={(e) => (e.target.style.borderColor = '#2196f3')}
+                onBlur={(e) => (e.target.style.borderColor = '#e0e0e0')}
+                required
               />
             </div>
           </div>
 
           <div style={{ marginBottom: '20px' }}>
-            <label htmlFor="email" style={{ 
-              display: 'block', 
-              marginBottom: '8px', 
-              fontWeight: '500',
-              color: '#34495e'
-            }}>
+            <label
+              htmlFor="email"
+              style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontWeight: '500',
+                color: '#34495e',
+              }}
+            >
               Email:
             </label>
             <input
@@ -185,7 +210,6 @@ const Register = ({ onSwitch, onLogin }) => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              required
               disabled={isLoading}
               style={{
                 width: '100%',
@@ -195,20 +219,24 @@ const Register = ({ onSwitch, onLogin }) => {
                 fontSize: '16px',
                 boxSizing: 'border-box',
                 transition: 'border-color 0.2s ease',
-                outline: 'none'
+                outline: 'none',
               }}
-              onFocus={(e) => e.target.style.borderColor = '#2196f3'}
-              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+              onFocus={(e) => (e.target.style.borderColor = '#2196f3')}
+              onBlur={(e) => (e.target.style.borderColor = '#e0e0e0')}
+              required
             />
           </div>
 
           <div style={{ marginBottom: '20px' }}>
-            <label htmlFor="password" style={{ 
-              display: 'block', 
-              marginBottom: '8px', 
-              fontWeight: '500',
-              color: '#34495e'
-            }}>
+            <label
+              htmlFor="password"
+              style={{
+                display: 'block',
+                marginBottom: '8px',
+                fontWeight: '500',
+                color: '#34495e',
+              }}
+            >
               Mot de passe:
             </label>
             <input
@@ -217,7 +245,6 @@ const Register = ({ onSwitch, onLogin }) => {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              required
               disabled={isLoading}
               style={{
                 width: '100%',
@@ -227,19 +254,27 @@ const Register = ({ onSwitch, onLogin }) => {
                 fontSize: '16px',
                 boxSizing: 'border-box',
                 transition: 'border-color 0.2s ease',
-                outline: 'none'
+                outline: 'none',
               }}
-              onFocus={(e) => e.target.style.borderColor = '#2196f3'}
-              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+              onFocus={(e) => (e.target.style.borderColor = '#2196f3')}
+              onBlur={(e) => (e.target.style.borderColor = '#e0e0e0')}
+              required
             />
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', marginTop: '30px' }}>
-            <button 
-              onClick={handleSubmit}
+          <div
+            style={{
+              display: 'flex',
+              gap: '12px',
+              marginTop: '30px',
+              justifyContent: 'center',
+            }}
+          >
+            <button
+              type="submit"
               disabled={isLoading}
               style={{
-                flex: 1,
+                minWidth: 140,
                 padding: '12px 24px',
                 backgroundColor: isLoading ? '#cccccc' : '#4caf50',
                 color: 'white',
@@ -248,19 +283,20 @@ const Register = ({ onSwitch, onLogin }) => {
                 fontSize: '16px',
                 fontWeight: '500',
                 cursor: isLoading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
               }}
               onMouseOver={(e) => !isLoading && (e.target.style.backgroundColor = '#45a049')}
               onMouseOut={(e) => !isLoading && (e.target.style.backgroundColor = '#4caf50')}
             >
-              {isLoading ? 'Inscription...' : "Inscription"}
+              {isLoading ? 'Inscription...' : 'Inscription'}
             </button>
-            
+
             <button
+              type="button"
               onClick={() => onSwitch('home')}
               disabled={isLoading}
               style={{
-                flex: 1,
+                minWidth: 140,
                 padding: '12px 24px',
                 backgroundColor: isLoading ? '#cccccc' : '#6c757d',
                 color: 'white',
@@ -269,7 +305,7 @@ const Register = ({ onSwitch, onLogin }) => {
                 fontSize: '16px',
                 fontWeight: '500',
                 cursor: isLoading ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s ease'
+                transition: 'all 0.2s ease',
               }}
               onMouseOver={(e) => !isLoading && (e.target.style.backgroundColor = '#5a6268')}
               onMouseOut={(e) => !isLoading && (e.target.style.backgroundColor = '#6c757d')}
@@ -277,7 +313,7 @@ const Register = ({ onSwitch, onLogin }) => {
               Retour
             </button>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );
