@@ -19,7 +19,7 @@ const UNITES = {
 };
 
 // URL de base de l'API - VÉRIFIER CETTE LIGNE
-const API_BASE = "http://localhost/SiteWebCapteursAPP/backend";
+const API_BASE = 'http://localhost/SiteWebbAppCapteurs/backend';
 
 export default function Dashboard({ user }) {
   // États pour le profil utilisateur

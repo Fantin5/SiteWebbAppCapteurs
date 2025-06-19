@@ -195,12 +195,11 @@ body {
   background-color: #115293;
 }
 
-.btn-export {
+.btn-csv {
   background-color: #ff9800;
-  color: #fff;
 }
 
-.btn-export:hover {
+.btn-csv:hover {
   background-color: #c77700;
 }
 
