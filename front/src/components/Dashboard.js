@@ -18,8 +18,8 @@ const UNITES = {
   "Capteur de distance": "cm",
 };
 
-// URL de base de l'API
-const API_BASE = "http://localhost/SiteWebbAppCapteurs/backend";
+// URL de base de l'API - VÉRIFIER CETTE LIGNE
+const API_BASE = "http://localhost/SiteWebCapteursAPP/backend";
 
 export default function Dashboard({ user }) {
   // États pour le profil utilisateur
@@ -96,19 +96,6 @@ export default function Dashboard({ user }) {
 
   // ========== CHARGEMENT DES DONNÉES ==========
 
-  // Charger le profil utilisateur avec l'ID de l'utilisateur connecté
-  const chargerProfil = async (userId) => {
-    try {
-      const response = await fetch(`${API_BASE}/user.php?user_id=${userId}`);
-      if (!response.ok) throw new Error("Erreur réseau");
-      
-      const data = await response.json();
-      setProfil({ data, loading: false, error: null });
-    } catch (error) {
-      setProfil({ data: null, loading: false, error: error.message });
-    }
-  };
-
   // Charger la liste des appareils
   const chargerAppareils = async () => {
     try {
@@ -155,6 +142,19 @@ export default function Dashboard({ user }) {
         loading: false, 
         error: error.message 
       }));
+    }
+  };
+
+  // Charger le profil utilisateur avec l'ID de l'utilisateur connecté
+  const chargerProfil = async (userId) => {
+    try {
+      const response = await fetch(`${API_BASE}/user.php?user_id=${userId}`);
+      if (!response.ok) throw new Error("Erreur réseau");
+      
+      const data = await response.json();
+      setProfil({ data, loading: false, error: null });
+    } catch (error) {
+      setProfil({ data: null, loading: false, error: error.message });
     }
   };
 
@@ -390,7 +390,7 @@ export default function Dashboard({ user }) {
         <div className="device-grid">
           {appareils.data.map((appareil) => {
             const unite = UNITES[appareil.nom] || "";
-            const estCapteur = appareil.is_capteur;
+            const estCapteur = Boolean(appareil.is_capteur);
 
             return (
               <div
@@ -453,7 +453,7 @@ export default function Dashboard({ user }) {
                         {graphique.activeId === appareil.id ? "Cacher Graphique" : "Voir Graphique"}
                       </button>
                       <button
-                        className="btn btn-export"
+                        className="btn btn-csv"
                         onClick={() => exporterCSV(appareil.id, appareil.nom)}
                       >
                         Export CSV
