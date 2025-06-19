@@ -52,29 +52,47 @@ body {
 /* ========== Cartes de dispositif ========== */
 .device-card {
   background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 12px 24px rgb(0 0 0 / 0.1);
-  padding: 25px 30px;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgb(0 0 0 / 0.1);
+  padding: 20px;
   display: flex;
   flex-direction: column;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
   width: 100%;
-  min-height: 300px;
+  min-height: 280px;
   height: auto;
-  margin-bottom: 0;
+  box-sizing: border-box;
+  border: 2px solid #e0e0e0; /* Add visible border */
 }
 
 .device-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 20px 40px rgb(0 0 0 / 0.15);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgb(0 0 0 / 0.15);
+  border-color: #ccc; /* Darken border on hover */
 }
 
 .capteur {
-  border-left: 6px solid #4caf50;
+  border-left: 6px solid #81d4fa; /* Light blue for sensors */
+  border-top: 2px solid #e1f5fe; /* Very light blue borders */
+  border-right: 2px solid #e1f5fe;
+  border-bottom: 2px solid #e1f5fe;
+}
+
+.capteur:hover {
+  border-left-color: #4fc3f7; /* Slightly darker light blue on hover */
+  border-color: #b3e5fc; /* Light blue borders on hover */
 }
 
 .actionneur {
-  border-left: 6px solid #f44336;
+  border-left: 6px solid #81d4fa; /* Same light blue for actuators */
+  border-top: 2px solid #e1f5fe; /* Same light blue borders */
+  border-right: 2px solid #e1f5fe;
+  border-bottom: 2px solid #e1f5fe;
+}
+
+.actionneur:hover {
+  border-left-color: #4fc3f7; /* Same darker light blue on hover */
+  border-color: #b3e5fc; /* Same light blue borders on hover */
 }
 
 /* ========== Header de carte ========== */
@@ -449,5 +467,29 @@ body {
   .btn-logout {
     max-width: 120px;
     padding: 8px 12px;
+  }
+}
+
+/* ========== Accessibility Enhancements ========== */
+
+/* High contrast mode support - Enhanced borders */
+@media (prefers-contrast: high) {
+  .device-card {
+    border: 3px solid #333 !important;
+    box-shadow: 0 0 0 1px #666;
+  }
+  
+  .capteur {
+    border-left: 8px solid #00aaff !important; /* Bright light blue for high contrast */
+    border-color: #333 !important;
+  }
+  
+  .actionneur {
+    border-left: 8px solid #00aaff !important; /* Same bright light blue for high contrast */
+    border-color: #333 !important;
+  }
+  
+  .btn {
+    border: 2px solid;
   }
 }
