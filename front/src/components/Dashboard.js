@@ -237,7 +237,7 @@ export default function Dashboard({ user }) {
   const allumerAppareil = async (id) => {
     if(id == 5) {
       try {
-        const response = await fetch(`${API_BASE}/api.php?action=allumer&id=${id}`);
+        const response = await fetch(`http://localhost:8000/api.php?action=allumer&id=${id}`);
         if (!response.ok) throw new Error("Erreur réseau");
         const data = await response.json();
         if (data.success) {
@@ -256,7 +256,7 @@ export default function Dashboard({ user }) {
   const eteindrAppareil = async (id) => {
     if(id == 5) {
       try {
-        const response = await fetch(`${API_BASE}/api.php?action=eteindre&id=${id}`);
+        const response = await fetch(`http://localhost:8000/api.php?action=eteindre&id=${id}`);
         if (!response.ok) throw new Error("Erreur réseau");
         const data = await response.json();
         if (data.success) {
