@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { AccessibilityProvider } from './components/AccessibilityContext';
+import AccessibilityPanel from './components/AccessibilityPanel';
+
 import Home from './components/Home';
 import Login from './components/Login';
 import Register from './components/Register';
@@ -41,22 +44,22 @@ function App() {
     }
   };
 
-  // For dashboard, render without container constraints
-  if (currentPage === 'dashboard') {
-    return (
-      <div className="App">
-        {renderPage()}
-      </div>
-    );
-  }
-
-  // For other pages, use the centered container
   return (
-    <div className="App">
-      <div className="container">
-        {renderPage()}
+    <AccessibilityProvider>
+      <div className="App">
+        {/* Conteneur centré sauf pour dashboard */}
+        {currentPage === 'dashboard' ? (
+          renderPage()
+        ) : (
+          <div className="container">
+            {renderPage()}
+          </div>
+        )}
+
+        {/* Accessibilité affichée sur toutes les pages */}
+        <AccessibilityPanel />
       </div>
-    </div>
+    </AccessibilityProvider>
   );
 }
 

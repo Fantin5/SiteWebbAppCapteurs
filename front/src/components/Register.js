@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
+import { useAccessibility } from './AccessibilityContext'; // bien sûr il faut importer le contexte accessibilité
 import { api } from '../services/api';
 
 const Register = ({ onSwitch, onLogin }) => {
+  const { options } = useAccessibility();
+
   const [formData, setFormData] = useState({
     nom: '',
     prenom: '',
@@ -45,6 +48,13 @@ const Register = ({ onSwitch, onLogin }) => {
     }
   };
 
+  const baseTextColor = options.highContrast ? '#fff' : '#34495e';
+  const background = options.highContrast ? '#000' : '#f5f5f5';
+  const containerBg = options.highContrast ? '#111' : 'white';
+  const boxShadow = options.highContrast
+    ? '0 0 10px 2px #fff'
+    : '0 4px 12px rgba(0, 0, 0, 0.1)';
+
   return (
     <div
       style={{
@@ -54,7 +64,13 @@ const Register = ({ onSwitch, onLogin }) => {
         justifyContent: 'center',
         padding: '40px 20px',
         minHeight: '100vh',
-        backgroundColor: '#f5f5f5',
+        backgroundColor: background,
+        fontFamily: options.dyslexicFont
+          ? '"OpenDyslexic", Arial, sans-serif'
+          : 'sans-serif',
+        fontSize: options.largeText ? '1.4rem' : '1.1rem',
+        lineHeight: options.largeText ? 1.8 : 1.6,
+        color: baseTextColor,
       }}
     >
       <img
@@ -68,26 +84,28 @@ const Register = ({ onSwitch, onLogin }) => {
           left: 20,
           cursor: 'pointer',
           zIndex: 1000,
+          filter: options.highContrast ? 'invert(1)' : 'none',
         }}
         onClick={() => window.location.reload()}
       />
 
       <div
         style={{
-          backgroundColor: 'white',
+          backgroundColor: containerBg,
           borderRadius: '12px',
           padding: '40px 30px',
           maxWidth: 600,
           width: '100%',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+          boxShadow,
           textAlign: 'center',
+          color: options.highContrast ? '#fff' : '#212121',
         }}
       >
         <h2
           style={{
             fontWeight: 600,
             fontSize: '2.5rem',
-            color: '#212121',
+            color: options.highContrast ? '#fff' : '#212121',
             marginBottom: 10,
           }}
         >
@@ -100,7 +118,9 @@ const Register = ({ onSwitch, onLogin }) => {
             height: 4,
             margin: '0 auto 30px',
             borderRadius: 2,
-            background: 'linear-gradient(to right, #4caf50, #2196f3)',
+            background: options.highContrast
+              ? 'linear-gradient(to right, #fff, #ccc)'
+              : 'linear-gradient(to right, #4caf50, #2196f3)',
           }}
         />
 
@@ -110,9 +130,29 @@ const Register = ({ onSwitch, onLogin }) => {
               padding: '12px',
               borderRadius: '8px',
               marginBottom: '20px',
-              backgroundColor: isSuccess ? '#d4edda' : '#f8d7da',
-              color: isSuccess ? '#155724' : '#721c24',
-              border: `1px solid ${isSuccess ? '#c3e6cb' : '#f5c6cb'}`,
+              backgroundColor: isSuccess
+                ? options.highContrast
+                  ? '#004d00'
+                  : '#d4edda'
+                : options.highContrast
+                ? '#660000'
+                : '#f8d7da',
+              color: isSuccess
+                ? options.highContrast
+                  ? '#b2ffb2'
+                  : '#155724'
+                : options.highContrast
+                ? '#ff9999'
+                : '#721c24',
+              border: `1px solid ${
+                isSuccess
+                  ? options.highContrast
+                    ? '#66bb66'
+                    : '#c3e6cb'
+                  : options.highContrast
+                  ? '#ff6666'
+                  : '#f5c6cb'
+              }`,
             }}
           >
             {message}
@@ -121,23 +161,64 @@ const Register = ({ onSwitch, onLogin }) => {
 
         <form onSubmit={handleSubmit} style={{ textAlign: 'left' }}>
           <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-            <div style={{ flex: 1 }}>
+            {['nom', 'prenom'].map((field) => (
+              <div key={field} style={{ flex: 1 }}>
+                <label
+                  htmlFor={field}
+                  style={{
+                    display: 'block',
+                    marginBottom: '8px',
+                    fontWeight: '500',
+                    color: baseTextColor,
+                  }}
+                >
+                  {field === 'nom' ? 'Nom:' : 'Prénom:'}
+                </label>
+                <input
+                  type="text"
+                  id={field}
+                  name={field}
+                  value={formData[field]}
+                  onChange={handleChange}
+                  disabled={isLoading}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid #e0e0e0',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    boxSizing: 'border-box',
+                    transition: 'border-color 0.2s ease',
+                    outline: 'none',
+                    backgroundColor: options.highContrast ? '#222' : 'white',
+                    color: options.highContrast ? '#fff' : 'inherit',
+                  }}
+                  onFocus={(e) => (e.target.style.borderColor = '#2196f3')}
+                  onBlur={(e) => (e.target.style.borderColor = '#e0e0e0')}
+                  required
+                />
+              </div>
+            ))}
+          </div>
+
+          {['email', 'password'].map((field) => (
+            <div key={field} style={{ marginBottom: '20px' }}>
               <label
-                htmlFor="nom"
+                htmlFor={field}
                 style={{
                   display: 'block',
                   marginBottom: '8px',
                   fontWeight: '500',
-                  color: '#34495e',
+                  color: baseTextColor,
                 }}
               >
-                Nom:
+                {field === 'email' ? 'Email:' : 'Mot de passe:'}
               </label>
               <input
-                type="text"
-                id="nom"
-                name="nom"
-                value={formData.nom}
+                type={field === 'password' ? 'password' : 'email'}
+                id={field}
+                name={field}
+                value={formData[field]}
                 onChange={handleChange}
                 disabled={isLoading}
                 style={{
@@ -149,118 +230,15 @@ const Register = ({ onSwitch, onLogin }) => {
                   boxSizing: 'border-box',
                   transition: 'border-color 0.2s ease',
                   outline: 'none',
+                  backgroundColor: options.highContrast ? '#222' : 'white',
+                  color: options.highContrast ? '#fff' : 'inherit',
                 }}
                 onFocus={(e) => (e.target.style.borderColor = '#2196f3')}
                 onBlur={(e) => (e.target.style.borderColor = '#e0e0e0')}
                 required
               />
             </div>
-
-            <div style={{ flex: 1 }}>
-              <label
-                htmlFor="prenom"
-                style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontWeight: '500',
-                  color: '#34495e',
-                }}
-              >
-                Prénom:
-              </label>
-              <input
-                type="text"
-                id="prenom"
-                name="prenom"
-                value={formData.prenom}
-                onChange={handleChange}
-                disabled={isLoading}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  border: '2px solid #e0e0e0',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  boxSizing: 'border-box',
-                  transition: 'border-color 0.2s ease',
-                  outline: 'none',
-                }}
-                onFocus={(e) => (e.target.style.borderColor = '#2196f3')}
-                onBlur={(e) => (e.target.style.borderColor = '#e0e0e0')}
-                required
-              />
-            </div>
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
-            <label
-              htmlFor="email"
-              style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontWeight: '500',
-                color: '#34495e',
-              }}
-            >
-              Email:
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              disabled={isLoading}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '16px',
-                boxSizing: 'border-box',
-                transition: 'border-color 0.2s ease',
-                outline: 'none',
-              }}
-              onFocus={(e) => (e.target.style.borderColor = '#2196f3')}
-              onBlur={(e) => (e.target.style.borderColor = '#e0e0e0')}
-              required
-            />
-          </div>
-
-          <div style={{ marginBottom: '20px' }}>
-            <label
-              htmlFor="password"
-              style={{
-                display: 'block',
-                marginBottom: '8px',
-                fontWeight: '500',
-                color: '#34495e',
-              }}
-            >
-              Mot de passe:
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              disabled={isLoading}
-              style={{
-                width: '100%',
-                padding: '12px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '16px',
-                boxSizing: 'border-box',
-                transition: 'border-color 0.2s ease',
-                outline: 'none',
-              }}
-              onFocus={(e) => (e.target.style.borderColor = '#2196f3')}
-              onBlur={(e) => (e.target.style.borderColor = '#e0e0e0')}
-              required
-            />
-          </div>
+          ))}
 
           <div
             style={{
@@ -276,7 +254,8 @@ const Register = ({ onSwitch, onLogin }) => {
               style={{
                 minWidth: 140,
                 padding: '12px 24px',
-                backgroundColor: isLoading ? '#cccccc' : '#4caf50',
+                backgroundColor:
+                  isLoading || options.highContrast ? '#222' : '#4caf50',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -285,8 +264,18 @@ const Register = ({ onSwitch, onLogin }) => {
                 cursor: isLoading ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s ease',
               }}
-              onMouseOver={(e) => !isLoading && (e.target.style.backgroundColor = '#45a049')}
-              onMouseOut={(e) => !isLoading && (e.target.style.backgroundColor = '#4caf50')}
+              onMouseOver={(e) =>
+                !isLoading &&
+                (e.target.style.backgroundColor = options.highContrast
+                  ? '#333'
+                  : '#45a049')
+              }
+              onMouseOut={(e) =>
+                !isLoading &&
+                (e.target.style.backgroundColor = options.highContrast
+                  ? '#222'
+                  : '#4caf50')
+              }
             >
               {isLoading ? 'Inscription...' : 'Inscription'}
             </button>
@@ -298,7 +287,7 @@ const Register = ({ onSwitch, onLogin }) => {
               style={{
                 minWidth: 140,
                 padding: '12px 24px',
-                backgroundColor: isLoading ? '#cccccc' : '#6c757d',
+                backgroundColor: options.highContrast ? '#444' : '#6c757d',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -307,8 +296,18 @@ const Register = ({ onSwitch, onLogin }) => {
                 cursor: isLoading ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s ease',
               }}
-              onMouseOver={(e) => !isLoading && (e.target.style.backgroundColor = '#5a6268')}
-              onMouseOut={(e) => !isLoading && (e.target.style.backgroundColor = '#6c757d')}
+              onMouseOver={(e) =>
+                !isLoading &&
+                (e.target.style.backgroundColor = options.highContrast
+                  ? '#555'
+                  : '#5a6268')
+              }
+              onMouseOut={(e) =>
+                !isLoading &&
+                (e.target.style.backgroundColor = options.highContrast
+                  ? '#444'
+                  : '#6c757d')
+              }
             >
               Retour
             </button>
