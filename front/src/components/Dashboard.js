@@ -234,14 +234,40 @@ export default function Dashboard({ user }) {
   };
 
   // Allumer un appareil
-  const allumerAppareil = (id) => {
-    setEtatsActionneurs(prev => ({ ...prev, [id]: 1 }));
+  const allumerAppareil = async (id) => {
+    if(id == 5) {
+      try {
+        const response = await fetch(`${API_BASE}/api.php?action=allumer&id=${id}`);
+        if (!response.ok) throw new Error("Erreur réseau");
+        const data = await response.json();
+        if (data.success) {
+        setEtatsActionneurs(prev => ({ ...prev, [id]: 1 }));
+      } else {
+        throw new Error("Erreur lors de l'allumage");
+      }
+    } catch (error) {
+      alert("Erreur lors de l'allumage : " + error.message);
+    }
   };
+}
 
   // Éteindre un appareil
-  const eteindrAppareil = (id) => {
-    setEtatsActionneurs(prev => ({ ...prev, [id]: 0 }));
-  };
+  const eteindrAppareil = async (id) => {
+    if(id == 5) {
+      try {
+        const response = await fetch(`${API_BASE}/api.php?action=eteindre&id=${id}`);
+        if (!response.ok) throw new Error("Erreur réseau");
+        const data = await response.json();
+        if (data.success) {
+          setEtatsActionneurs(prev => ({ ...prev, [id]: 0 }));
+        } else {
+          throw new Error("Erreur lors de l'extinction");
+        }
+      } catch (error) {
+        alert("Erreur lors de l'extinction : " + error.message);
+      }
+    };
+  }
 
   // ========== AUTOMATISATION ==========
 
