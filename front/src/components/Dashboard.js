@@ -235,6 +235,7 @@ export default function Dashboard({ user }) {
 
   // Allumer un appareil
   const allumerAppareil = async (id) => {
+    alert(id);
     if(id == 5) {
       try {
         const response = await fetch(`${API_BASE}/api.php?action=allumer&id=${id}`);
