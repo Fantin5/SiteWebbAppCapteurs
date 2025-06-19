@@ -10,270 +10,334 @@ import {
 } from "recharts";
 import "./Dashboard.css";
 
-const unitMap = {
+// Configuration des unités pour chaque type de capteur
+const UNITES = {
   "Capteur lumière": "lux",
   "Capteur Température": "°C",
   "Capteur Humidité": "%",
   "Capteur de distance": "cm",
 };
 
-export default function Dashboard() {
-  // Profil utilisateur
-  const [profile, setProfile] = useState(null);
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [profileError, setProfileError] = useState(null);
+// URL de base de l'API
+const API_BASE = "http://localhost/SiteWebbAppCapteurs/backend";
 
-  // Devices
-  const [devices, setDevices] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export default function Dashboard({ user }) {
+  // États pour le profil utilisateur
+  const [profil, setProfil] = useState({
+    data: user || null, // Utiliser les données utilisateur passées en props
+    loading: !user, // Ne charger que si pas d'utilisateur en props
+    error: null
+  });
 
-  // Graph
-  const [activeGraphId, setActiveGraphId] = useState(null);
-  const [graphData, setGraphData] = useState([]);
-  const [graphLoading, setGraphLoading] = useState(false);
-  const [graphError, setGraphError] = useState(null);
+  // États pour les appareils (capteurs et actionneurs)
+  const [appareils, setAppareils] = useState({
+    data: [],
+    loading: true,
+    error: null
+  });
 
-  // Etats actionneurs stockés localement {id: état}
-  const [actionneurEtats, setActionneurEtats] = useState({});
+  // États pour les graphiques
+  const [graphique, setGraphique] = useState({
+    activeId: null,
+    data: [],
+    loading: false,
+    error: null
+  });
 
-  // Seuils température et luminosité modifiables
-  const [seuilTemperature, setSeuilTemperature] = useState(25);
-  const [seuilLuminosite, setSeuilLuminosite] = useState(300);
+  // États des actionneurs (allumé/éteint, ouvert/fermé)
+  const [etatsActionneurs, setEtatsActionneurs] = useState({});
 
-  // Valeurs saisies dans le formulaire (pour contrôle)
-  const [tempInput, setTempInput] = useState(seuilTemperature);
-  const [lumInput, setLumInput] = useState(seuilLuminosite);
+  // Seuils pour l'automatisation
+  const [seuils, setSeuils] = useState({
+    temperature: 25,
+    luminosite: 300,
+    // Valeurs temporaires pour les inputs
+    tempInput: 25,
+    lumInput: 300
+  });
 
-  const handleLogout = () => {
+  // ========== FONCTIONS UTILITAIRES ==========
+
+  // Déconnexion
+  const deconnecter = () => {
+    // Supprimer les données utilisateur du localStorage
+    localStorage.removeItem('user');
+    // Rediriger vers la page de connexion
     window.location.href = '/login';
   };
 
-  // Chargement profil utilisateur (exemple user_id=1)
-  useEffect(() => {
-    fetch("http://localhost/SiteWebbAppCapteurs/backend/user.php?user_id=1")
-      .then((res) => {
-        if (!res.ok) throw new Error("Erreur réseau");
-        return res.json();
-      })
-      .then((data) => {
-        setProfile(data);
-        setProfileLoading(false);
-      })
-      .catch((e) => {
-        setProfileError(e.message);
-        setProfileLoading(false);
-      });
-  }, []);
-
-  // Chargement devices
-  useEffect(() => {
-    fetch("http://localhost/SiteWebbAppCapteurs/backend/api.php")
-      .then((res) => {
-        if (!res.ok) throw new Error("Erreur réseau");
-        return res.json();
-      })
-      .then((data) => {
-        setDevices(data);
-        setLoading(false);
-        const etatsInit = {};
-        data.forEach(({ id }) => {
-          etatsInit[id] = 0;
-        });
-        setActionneurEtats(etatsInit);
-      })
-      .catch((e) => {
-        setError(e.message);
-        setLoading(false);
-      });
-  }, []);
-
-  // Chargement graphique
-  const fetchGraphData = (id) => {
-    setGraphLoading(true);
-    setGraphError(null);
-    fetch(`http://localhost/SiteWebbAppCapteurs/backend/api.php?id_composant=${id}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Erreur réseau");
-        return res.json();
-      })
-      .then((data) => {
-        setGraphData(
-          data.map((item) => ({
-            date: new Date(item.date).toLocaleString(),
-            valeur: Number(item.valeur),
-          }))
-        );
-        setGraphLoading(false);
-      })
-      .catch((e) => {
-        setGraphError(e.message);
-        setGraphLoading(false);
-      });
+  // Formater le nom d'un appareil (première lettre en majuscule)
+  const formaterNom = (nom) => {
+    return nom.split(' ')
+      .map(mot => mot.charAt(0).toUpperCase() + mot.slice(1))
+      .join(' ');
   };
 
-  const handleShowGraph = (id) => {
-    if (activeGraphId === id) {
-      setActiveGraphId(null);
-    } else {
-      setActiveGraphId(id);
-      fetchGraphData(id);
-    }
-  };
-  
-  const exportCSV = (id, nom) => {
-    fetch(`http://localhost/SiteWebbAppCapteurs/backend/api.php?id_composant=${id}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Erreur réseau");
-        return res.json();
-      })
-      .then((data) => {
-        if (!data.length) {
-          alert("Aucune donnée à exporter.");
-          return;
-        }
-        const csvHeader = "Date, Valeur\n";
-        const csvRows = data.map((item) => {
-          const date = new Date(item.date).toLocaleString();
-          return `"${date}","${item.valeur}"`;
-        });
-        const csvContent = csvHeader + csvRows.join("\n");
-
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `${nom.replace(/\s+/g, "_")}_mesures.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      })
-      .catch((e) => {
-        alert("Erreur lors de l'export CSV : " + e.message);
-      });
-  };
-
-  // Automatisation volet selon seuils avec priorité température
-  const appliquerAutomatiqueVolet = (devices, etats) => {
-    const capteurTemp = devices.find(d => d.nom.toLowerCase().includes("température") && d.is_capteur);
-    const capteurLum = devices.find(d => d.nom.toLowerCase().includes("lumière") && d.is_capteur);
-
-    const voletServo = devices.find(d => d.nom.toLowerCase().includes("servo") && !d.is_capteur);
-    const voletMoteur = devices.find(d => d.nom.toLowerCase().includes("moteur") && !d.is_capteur);
-
-    if (!voletServo && !voletMoteur) return etats;
-
-    const tempVal = capteurTemp ? Number(capteurTemp.valeur) : null;
-    const lumVal = capteurLum ? Number(capteurLum.valeur) : null;
-
-    let nouvelEtat = { ...etats };
-
-    if (tempVal !== null && tempVal !== undefined) {
-      if (tempVal > seuilTemperature) {
-        // Temp élevée => volet fermé
-        if (voletServo) nouvelEtat[voletServo.id] = 0;
-        if (voletMoteur) nouvelEtat[voletMoteur.id] = 0;
-      } else {
-        // Temp basse => volet ouvert
-        if (voletServo) nouvelEtat[voletServo.id] = 1;
-        if (voletMoteur) nouvelEtat[voletMoteur.id] = 1;
-      }
-    } else if (lumVal !== null && lumVal !== undefined) {
-      if (lumVal < seuilLuminosite) {
-        // Luminosité faible => volet ouvert
-        if (voletServo) nouvelEtat[voletServo.id] = 1;
-        if (voletMoteur) nouvelEtat[voletMoteur.id] = 1;
-      } else {
-        // Luminosité forte => volet fermé
-        if (voletServo) nouvelEtat[voletServo.id] = 0;
-        if (voletMoteur) nouvelEtat[voletMoteur.id] = 0;
-      }
-    }
-
-    return nouvelEtat;
-  };
-
-  useEffect(() => {
-    if (devices.length === 0) return;
-    setActionneurEtats((prevEtats) => {
-      const nouveauxEtats = appliquerAutomatiqueVolet(devices, prevEtats);
-      const changed = Object.keys(nouveauxEtats).some(
-        (key) => nouveauxEtats[key] !== prevEtats[key]
-      );
-      return changed ? nouveauxEtats : prevEtats;
-    });
-  }, [devices, seuilTemperature, seuilLuminosite]);
-
-  const handleAllumer = (id) => {
-    setActionneurEtats((prev) => ({ ...prev, [id]: 1 }));
-  };
-
-  const handleEteindre = (id) => {
-    setActionneurEtats((prev) => ({ ...prev, [id]: 0 }));
-  };
-
-  const getEtatLisible = (device) => {
-    const etat = actionneurEtats[device.id];
-
+  // Obtenir l'état lisible d'un actionneur
+  const obtenirEtatLisible = (appareil) => {
+    const etat = etatsActionneurs[appareil.id];
+    
     if (etat === undefined) return "Inconnu";
+    
+    // Pour les capteurs
+    if (appareil.is_capteur) {
+      return etat === 1 ? "Allumé" : "Éteint";
+    }
+    
+    // Pour les volets (servo/moteur)
+    if (appareil.nom.toLowerCase().includes("servo") || 
+        appareil.nom.toLowerCase().includes("moteur")) {
+      return etat === 0 ? "Fermé" : "Ouvert";
+    }
+    
+    // Pour les autres actionneurs
+    return etat === 1 ? "Allumé" : "Éteint";
+  };
 
-    if (device.is_capteur) {
-      return etat === 1 ? "Allumé" : "Éteint";
-    } else {
-      if (device.nom.toLowerCase().includes("servo")) {
-        return etat === 0 ? "Fermé" : etat === 1 ? "Ouvert" : "Inconnu";
-      }
-      if (device.nom.toLowerCase().includes("moteur")) {
-        return etat === 0 ? "Fermé" : etat === 1 ? "Ouvert" : "Inconnu";
-      }
-      return etat === 1 ? "Allumé" : "Éteint";
+  // ========== CHARGEMENT DES DONNÉES ==========
+
+  // Charger le profil utilisateur avec l'ID de l'utilisateur connecté
+  const chargerProfil = async (userId) => {
+    try {
+      const response = await fetch(`${API_BASE}/user.php?user_id=${userId}`);
+      if (!response.ok) throw new Error("Erreur réseau");
+      
+      const data = await response.json();
+      setProfil({ data, loading: false, error: null });
+    } catch (error) {
+      setProfil({ data: null, loading: false, error: error.message });
     }
   };
 
+  // Charger la liste des appareils
+  const chargerAppareils = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api.php`);
+      if (!response.ok) throw new Error("Erreur réseau");
+      
+      const data = await response.json();
+      setAppareils({ data, loading: false, error: null });
+      
+      // Initialiser les états des actionneurs
+      const etatsInitiaux = {};
+      data.forEach(appareil => {
+        etatsInitiaux[appareil.id] = 0;
+      });
+      setEtatsActionneurs(etatsInitiaux);
+    } catch (error) {
+      setAppareils({ data: [], loading: false, error: error.message });
+    }
+  };
 
-  // Validation et application seuils depuis formulaire
-  const handleSeuilsSubmit = (e) => {
+  // Charger les données d'un graphique
+  const chargerGraphique = async (id) => {
+    setGraphique(prev => ({ ...prev, loading: true, error: null }));
+    
+    try {
+      const response = await fetch(`${API_BASE}/api.php?id_composant=${id}`);
+      if (!response.ok) throw new Error("Erreur réseau");
+      
+      const data = await response.json();
+      const donneesFormatees = data.map(item => ({
+        date: new Date(item.date).toLocaleString(),
+        valeur: Number(item.valeur),
+      }));
+      
+      setGraphique(prev => ({ 
+        ...prev, 
+        data: donneesFormatees, 
+        loading: false 
+      }));
+    } catch (error) {
+      setGraphique(prev => ({ 
+        ...prev, 
+        data: [], 
+        loading: false, 
+        error: error.message 
+      }));
+    }
+  };
+
+  // ========== GESTION DES ACTIONS ==========
+
+  // Afficher/cacher un graphique
+  const basculerGraphique = (id) => {
+    if (graphique.activeId === id) {
+      setGraphique(prev => ({ ...prev, activeId: null }));
+    } else {
+      setGraphique(prev => ({ ...prev, activeId: id }));
+      chargerGraphique(id);
+    }
+  };
+
+  // Exporter les données en CSV
+  const exporterCSV = async (id, nom) => {
+    try {
+      const response = await fetch(`${API_BASE}/api.php?id_composant=${id}`);
+      if (!response.ok) throw new Error("Erreur réseau");
+      
+      const data = await response.json();
+      if (!data.length) {
+        alert("Aucune donnée à exporter.");
+        return;
+      }
+
+      // Créer le contenu CSV
+      const csvHeader = "Date,Valeur\n";
+      const csvRows = data.map(item => {
+        const date = new Date(item.date).toLocaleString();
+        return `"${date}","${item.valeur}"`;
+      });
+      const csvContent = csvHeader + csvRows.join("\n");
+
+      // Télécharger le fichier
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${nom.replace(/\s+/g, "_")}_mesures.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      alert("Erreur lors de l'export CSV : " + error.message);
+    }
+  };
+
+  // Allumer un appareil
+  const allumerAppareil = (id) => {
+    setEtatsActionneurs(prev => ({ ...prev, [id]: 1 }));
+  };
+
+  // Éteindre un appareil
+  const eteindrAppareil = (id) => {
+    setEtatsActionneurs(prev => ({ ...prev, [id]: 0 }));
+  };
+
+  // ========== AUTOMATISATION ==========
+
+  // Appliquer l'automatisation des volets
+  const appliquerAutomatisation = (appareils, etatsActuels) => {
+    // Trouver les capteurs
+    const capteurTemp = appareils.find(a => 
+      a.nom.toLowerCase().includes("température") && a.is_capteur
+    );
+    const capteurLum = appareils.find(a => 
+      a.nom.toLowerCase().includes("lumière") && a.is_capteur
+    );
+
+    // Trouver les volets
+    const volets = appareils.filter(a => 
+      !a.is_capteur && 
+      (a.nom.toLowerCase().includes("servo") || a.nom.toLowerCase().includes("moteur"))
+    );
+
+    if (volets.length === 0) return etatsActuels;
+
+    const nouveauxEtats = { ...etatsActuels };
+    const temperature = capteurTemp ? Number(capteurTemp.valeur) : null;
+    const luminosite = capteurLum ? Number(capteurLum.valeur) : null;
+
+    // Priorité à la température
+    if (temperature !== null && !isNaN(temperature)) {
+      const etatVolet = temperature > seuils.temperature ? 0 : 1; // 0=fermé, 1=ouvert
+      volets.forEach(volet => {
+        nouveauxEtats[volet.id] = etatVolet;
+      });
+    } 
+    // Sinon, utiliser la luminosité
+    else if (luminosite !== null && !isNaN(luminosite)) {
+      const etatVolet = luminosite < seuils.luminosite ? 1 : 0; // Faible lum = ouvert
+      volets.forEach(volet => {
+        nouveauxEtats[volet.id] = etatVolet;
+      });
+    }
+
+    return nouveauxEtats;
+  };
+
+  // Sauvegarder les nouveaux seuils
+  const sauvegarderSeuils = (e) => {
     e.preventDefault();
 
-    const tempVal = Number(tempInput);
-    const lumVal = Number(lumInput);
+    const nouvelleTemp = Number(seuils.tempInput);
+    const nouvelleLum = Number(seuils.lumInput);
 
-    if (isNaN(tempVal) || isNaN(lumVal)) {
+    // Validation
+    if (isNaN(nouvelleTemp) || isNaN(nouvelleLum)) {
       alert("Merci d'entrer des valeurs numériques valides.");
       return;
     }
-    if (tempVal < -50 || tempVal > 100) {
+    if (nouvelleTemp < -50 || nouvelleTemp > 100) {
       alert("Température doit être entre -50 et 100 °C.");
       return;
     }
-    if (lumVal < 0) {
+    if (nouvelleLum < 0) {
       alert("Luminosité doit être positive.");
       return;
     }
 
-    setSeuilTemperature(tempVal);
-    setSeuilLuminosite(lumVal);
+    setSeuils(prev => ({
+      ...prev,
+      temperature: nouvelleTemp,
+      luminosite: nouvelleLum
+    }));
     alert("Seuils mis à jour !");
   };
 
+  // ========== EFFETS ==========
+
+  // Charger le profil au démarrage si nécessaire
+  useEffect(() => {
+    if (!profil.data && user && user.userId) {
+      chargerProfil(user.userId);
+    }
+  }, [user]);
+
+  // Charger les appareils au démarrage
+  useEffect(() => {
+    chargerAppareils();
+  }, []);
+
+  // Appliquer l'automatisation quand les données changent
+  useEffect(() => {
+    if (appareils.data.length === 0) return;
+    
+    setEtatsActionneurs(etatsActuels => {
+      const nouveauxEtats = appliquerAutomatisation(appareils.data, etatsActuels);
+      
+      // Ne mettre à jour que si il y a des changements
+      const aChange = Object.keys(nouveauxEtats).some(
+        id => nouveauxEtats[id] !== etatsActuels[id]
+      );
+      
+      return aChange ? nouveauxEtats : etatsActuels;
+    });
+  }, [appareils.data, seuils.temperature, seuils.luminosite]);
+
+  // ========== RENDU ==========
+
   return (
     <div className="app-container">
-      {/* Colonne gauche: Profil + Paramètres seuils */}
+      {/* COLONNE GAUCHE - Profil et Paramètres */}
       <div className="profile-container">
+        {/* En-tête avec logo */}
         <div className="profile-header">
           <img src="logo-zenhome.png" alt="Logo Domotique" className="site-logo" />
         </div>
+
+        {/* Profil utilisateur */}
         <h2>Profil Utilisateur</h2>
-        {profileLoading && <p>Chargement...</p>}
-        {profileError && <p style={{ color: "red" }}>Erreur : {profileError}</p>}
-        {profile && (
+        {profil.loading && <p>Chargement...</p>}
+        {profil.error && <p style={{ color: "red" }}>Erreur : {profil.error}</p>}
+        {profil.data && (
           <div className="profile-info">
-            <p><strong>Nom :</strong> {profile.nom}</p>
-            <p><strong>Prénom :</strong> {profile.prenom}</p>
-            <p><strong>Email :</strong> {profile.email}</p>
-            <p><strong>Administrateur :</strong> {profile.isAdmin ? "Oui" : "Non"}</p>
-            <button className="btn-logout" onClick={handleLogout}>
+            <p><strong>Nom :</strong> {profil.data.nom}</p>
+            <p><strong>Prénom :</strong> {profil.data.prenom}</p>
+            <p><strong>Email :</strong> {profil.data.email}</p>
+            <p><strong>Administrateur :</strong> {profil.data.isAdmin ? "Oui" : "Non"}</p>
+            <button className="btn-logout" onClick={deconnecter}>
               Déconnexion
             </button>
           </div>
@@ -281,15 +345,16 @@ export default function Dashboard() {
 
         <hr />
 
+        {/* Paramètres des seuils */}
         <div className="seuils-container">
-          <h3>Paramètres </h3>
-          <form onSubmit={handleSeuilsSubmit} className="param-form">
+          <h3>Paramètres</h3>
+          <form onSubmit={sauvegarderSeuils} className="param-form">
             <label>
               Seuil Température (°C)
               <input
                 type="number"
-                value={tempInput}
-                onChange={(e) => setTempInput(e.target.value)}
+                value={seuils.tempInput}
+                onChange={(e) => setSeuils(prev => ({...prev, tempInput: e.target.value}))}
                 step="0.1"
                 min="-50"
                 max="100"
@@ -300,80 +365,96 @@ export default function Dashboard() {
               Seuil Luminosité (lux)
               <input
                 type="number"
-                value={lumInput}
-                onChange={(e) => setLumInput(e.target.value)}
+                value={seuils.lumInput}
+                onChange={(e) => setSeuils(prev => ({...prev, lumInput: e.target.value}))}
                 step="1"
                 min="0"
               />
             </label>
 
-            <button type="submit" className="btn btn-save">Enregistrer</button>
+            <button type="submit" className="btn btn-save">
+              Enregistrer
+            </button>
           </form>
         </div>
       </div>
 
-
-      {/* Dashboard droite */}
+      {/* COLONNE DROITE - Dashboard */}
       <div className="dashboard">
         <h1 className="dashboard-title">Dashboard Capteurs & Actionneurs</h1>
 
-        {loading && <p>Chargement des données...</p>}
-        {error && <p style={{ color: "red" }}>Erreur : {error}</p>}
+        {appareils.loading && <p>Chargement des données...</p>}
+        {appareils.error && <p style={{ color: "red" }}>Erreur : {appareils.error}</p>}
 
+        {/* Grille des appareils */}
         <div className="device-grid">
-          {devices.map(({ id, nom, is_capteur, valeur, date }) => {
-            const unite = unitMap[nom] || "";
+          {appareils.data.map((appareil) => {
+            const unite = UNITES[appareil.nom] || "";
+            const estCapteur = appareil.is_capteur;
 
             return (
               <div
-                key={id}
-                className={`device-card ${is_capteur ? "capteur" : "actionneur"}`}
+                key={appareil.id}
+                className={`device-card ${estCapteur ? "capteur" : "actionneur"}`}
               >
+                {/* En-tête de la carte */}
                 <div className="device-header">
                   <h2 className="device-name">
-                    {nom.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                    {formaterNom(appareil.nom)}
                   </h2>
-                  <span className={`device-badge ${is_capteur ? "green" : "red"}`}>
-                    {is_capteur ? "Capteur" : "Actionneur"}
+                  <span className={`device-badge ${estCapteur ? "green" : "red"}`}>
+                    {estCapteur ? "Capteur" : "Actionneur"}
                   </span>
                 </div>
 
+                {/* Corps de la carte */}
                 <div className="device-body">
-                  {is_capteur ? (
+                  {estCapteur ? (
+                    // Affichage pour les capteurs
                     <>
                       <p className="sensor-value">
-                        Dernière valeur: {valeur || "N/A"}
+                        Dernière valeur: {appareil.valeur || "N/A"}
                         {unite && <span className="sensor-unit"> {unite}</span>}
                       </p>
                       <p className="sensor-date">
-                        Date: {date ? new Date(date).toLocaleString() : "N/A"}
+                        Date: {appareil.date ? new Date(appareil.date).toLocaleString() : "N/A"}
                       </p>
                     </>
                   ) : (
+                    // Affichage pour les actionneurs
                     <p className="actionneur-state">
-                      État: {getEtatLisible({ id, nom, is_capteur })}
+                      État: {obtenirEtatLisible(appareil)}
                     </p>
                   )}
                 </div>
 
+                {/* Actions */}
                 <div className="device-actions">
-                  <button className="btn btn-on" onClick={() => handleAllumer(id)}>
+                  <button 
+                    className="btn btn-on" 
+                    onClick={() => allumerAppareil(appareil.id)}
+                  >
                     Allumer
                   </button>
-                  <button className="btn btn-off" onClick={() => handleEteindre(id)}>
+                  <button 
+                    className="btn btn-off" 
+                    onClick={() => eteindrAppareil(appareil.id)}
+                  >
                     Éteindre
                   </button>
-                  {is_capteur && (
+                  
+                  {/* Actions spécifiques aux capteurs */}
+                  {estCapteur && (
                     <>
                       <button
                         className="btn btn-graph"
-                        onClick={() => handleShowGraph(id)}
+                        onClick={() => basculerGraphique(appareil.id)}
                       >
-                        {activeGraphId === id ? "Cacher Graphique" : "Voir Graphique"}
+                        {graphique.activeId === appareil.id ? "Cacher Graphique" : "Voir Graphique"}
                       </button>
                       <button
                         className="btn btn-export"
-                        onClick={() => exportCSV(id, nom)}
+                        onClick={() => exporterCSV(appareil.id, appareil.nom)}
                       >
                         Export CSV
                       </button>
@@ -381,15 +462,16 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                {activeGraphId === id && graphData.length > 0 && (
+                {/* Graphique (si actif) */}
+                {graphique.activeId === appareil.id && graphique.data.length > 0 && (
                   <div className="graph-container">
-                    {graphLoading ? (
+                    {graphique.loading ? (
                       <p>Chargement graphique...</p>
-                    ) : graphError ? (
-                      <p style={{ color: "red" }}>Erreur graphique : {graphError}</p>
+                    ) : graphique.error ? (
+                      <p style={{ color: "red" }}>Erreur graphique : {graphique.error}</p>
                     ) : (
                       <ResponsiveContainer width="100%" height={250}>
-                        <LineChart data={graphData}>
+                        <LineChart data={graphique.data}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="date" />
                           <YAxis />

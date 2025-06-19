@@ -27,7 +27,12 @@ const Login = ({ onLogin, onSwitch }) => {
       if (result.success) {
         setMessage(result.message);
         setIsSuccess(true);
+        
+        // Sauvegarder les informations utilisateur (optionnel, selon vos besoins)
+        localStorage.setItem('user', JSON.stringify(result.user));
+        
         setTimeout(() => {
+          // Passer l'objet utilisateur complet avec l'ID
           onLogin(result.user);
         }, 1000);
       } else {
@@ -200,7 +205,7 @@ const Login = ({ onLogin, onSwitch }) => {
               onMouseOver={(e) => !isLoading && (e.target.style.backgroundColor = '#45a049')}
               onMouseOut={(e) => !isLoading && (e.target.style.backgroundColor = '#4caf50')}
             >
-              {isLoading ? 'Connexion...' : 'Se connecter'}
+              {isLoading ? 'Connexion...' : 'Connexion'}
             </button>
             
             <button

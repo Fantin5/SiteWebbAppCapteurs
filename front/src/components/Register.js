@@ -51,14 +51,7 @@ const Register = ({ onSwitch, onLogin }) => {
   };
 
   return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px',
-      width: '600px',
-      maxWidth: '90vw'
-    }}>
+    <div>
       <img 
         src="logo-zenhome.png"
         alt="Logo" 
@@ -76,10 +69,13 @@ const Register = ({ onSwitch, onLogin }) => {
 
       <div
         style={{
-          maxWidth: 450,
+          maxWidth: 1200,
           width: '100%',
           textAlign: 'center',
           boxSizing: 'border-box',
+          backgroundColor :'white',
+          padding : '20px',
+          borderRadius :'8px',
         }}
       >
         <h2 style={{ fontWeight: 600, fontSize: '2.5rem', color: '#212121', marginBottom: 10 }}>
@@ -257,7 +253,7 @@ const Register = ({ onSwitch, onLogin }) => {
               onMouseOver={(e) => !isLoading && (e.target.style.backgroundColor = '#45a049')}
               onMouseOut={(e) => !isLoading && (e.target.style.backgroundColor = '#4caf50')}
             >
-              {isLoading ? 'Inscription...' : "S'inscrire"}
+              {isLoading ? 'Inscription...' : "Inscription"}
             </button>
             
             <button
