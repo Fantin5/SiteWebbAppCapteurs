@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost/sitewebbappcapteurs/backend';
+const API_BASE_URL = 'http://localhost/SiteWebCapteursApp/backend';
 
 export const api = {
   login: async (email, password) => {
