@@ -3,6 +3,30 @@ from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+
+import mysql.connector
+
+DB_CONFIG = {
+    "host": "romantcham.fr",
+    "user": "G7B",
+    "password": "aqwzsx",
+    "database": "Domotic_db"
+}
+
+def insert_mesure(valeur):
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO mesure (id_composant, date, valeur) VALUES (%s, NOW(), %s)",
+            (5, valeur)
+        )
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"❌ Erreur lors de l'insertion dans la BDD: {e}")
+
 PORT, BAUD = "COM6", 9600
 ENVOI_INTERVALLE = 10
 
@@ -29,7 +53,7 @@ except serial.SerialException as e:
 
 class FanCmd(BaseModel):
     state: str
-
+    
 @app.post("/fan")
 def switch_fan(cmd: FanCmd):
     if ser is None:
@@ -40,9 +64,13 @@ def switch_fan(cmd: FanCmd):
         return {"ok": False, "msg": "state must be 'on' or 'off'"}
 
     message = "FAN:ON" if state == "on" else "FAN:OFF"
+    valeur = 1 if state == "on" else 0
+
     with lock:
         ser.write((message + "\n").encode())
         print(f"📤 Commande envoyée au port série : {message}")
+
+    insert_mesure(valeur)
 
     return {"ok": True, "msg": f"Commande envoyée : {message}"}
 
