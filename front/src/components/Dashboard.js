@@ -8,6 +8,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useAccessibility } from './AccessibilityContext';
 import "./Dashboard.css";
 
 // Configuration des unités pour chaque type de capteur
@@ -19,9 +20,36 @@ const UNITES = {
 };
 
 // URL de base de l'API - VÉRIFIER CETTE LIGNE
-const API_BASE = "http://localhost/SiteWebCapteursAPP/backend";
+const API_BASE = 'http://localhost/SiteWebbAppCapteurs/backend';
 
 export default function Dashboard({ user }) {
+  const { options } = useAccessibility();
+
+  // Responsive helpers
+  const isMobile = window.innerWidth <= 480;
+  const isTablet = window.innerWidth <= 768;
+
+  // Dynamic styles based on accessibility options
+  const dynamicStyles = {
+    fontSize: options.largeText ? '1.4rem' : isMobile ? '1rem' : '1.1rem',
+    fontFamily: options.dyslexicFont ? '"OpenDyslexic", Arial, sans-serif' : '"Inter", sans-serif',
+    backgroundColor: options.highContrast ? '#000' : '#f0f4f8',
+    color: options.highContrast ? '#fff' : '#34495e',
+    lineHeight: options.largeText ? 1.8 : 1.6,
+  };
+
+  const containerStyles = {
+    backgroundColor: options.highContrast ? '#111' : 'white',
+    color: options.highContrast ? '#fff' : '#34495e',
+    borderColor: options.highContrast ? '#333' : '#e0e0e0',
+  };
+
+  const buttonStyles = {
+    fontSize: options.largeText ? '1rem' : isMobile ? '0.8rem' : '0.9rem',
+    fontFamily: dynamicStyles.fontFamily,
+    padding: options.largeText ? '14px 18px' : isMobile ? '10px 12px' : '12px 16px',
+  };
+
   // États pour le profil utilisateur
   const [profil, setProfil] = useState({
     data: user || null, // Utiliser les données utilisateur passées en props
@@ -319,37 +347,121 @@ export default function Dashboard({ user }) {
   // ========== RENDU ==========
 
   return (
-    <div className="app-container">
+    <div 
+      className="app-container"
+      style={{
+        fontFamily: dynamicStyles.fontFamily,
+        fontSize: dynamicStyles.fontSize,
+        backgroundColor: dynamicStyles.backgroundColor,
+        color: dynamicStyles.color,
+      }}
+    >
       {/* COLONNE GAUCHE - Profil et Paramètres */}
-      <div className="profile-container">
+      <div 
+        className="profile-container"
+        style={{
+          background: options.highContrast ? '#111' : 'linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%)',
+          color: dynamicStyles.color,
+          fontFamily: dynamicStyles.fontFamily,
+          fontSize: dynamicStyles.fontSize,
+        }}
+      >
         {/* En-tête avec logo */}
         <div className="profile-header">
-          <img src="logo-zenhome.png" alt="Logo Domotique" className="site-logo" />
+          <img 
+            src="logo-zenhome.png" 
+            alt="Logo Domotique" 
+            className="site-logo"
+            style={{
+              filter: options.highContrast ? 'invert(1)' : 'none',
+            }}
+          />
         </div>
 
         {/* Profil utilisateur */}
-        <h2>Profil Utilisateur</h2>
-        {profil.loading && <p>Chargement...</p>}
-        {profil.error && <p style={{ color: "red" }}>Erreur : {profil.error}</p>}
+        <h2 style={{
+          color: options.highContrast ? '#fff' : '#2c3e50',
+          fontFamily: dynamicStyles.fontFamily,
+          fontSize: options.largeText ? '2rem' : '1.8rem',
+        }}>
+          Profil Utilisateur
+        </h2>
+        
+        {profil.loading && <p style={{ fontFamily: dynamicStyles.fontFamily }}>Chargement...</p>}
+        {profil.error && (
+          <p style={{ 
+            color: options.highContrast ? "#ff6666" : "red",
+            fontFamily: dynamicStyles.fontFamily 
+          }}>
+            Erreur : {profil.error}
+          </p>
+        )}
+        
         {profil.data && (
-          <div className="profile-info">
-            <p><strong>Nom :</strong> {profil.data.nom}</p>
-            <p><strong>Prénom :</strong> {profil.data.prenom}</p>
-            <p><strong>Email :</strong> {profil.data.email}</p>
-            <p><strong>Administrateur :</strong> {profil.data.isAdmin ? "Oui" : "Non"}</p>
-            <button className="btn-logout" onClick={deconnecter}>
+          <div 
+            className="profile-info"
+            style={{
+              backgroundColor: containerStyles.backgroundColor,
+              color: containerStyles.color,
+              fontFamily: dynamicStyles.fontFamily,
+              fontSize: dynamicStyles.fontSize,
+              lineHeight: dynamicStyles.lineHeight,
+            }}
+          >
+            <p style={{ fontFamily: dynamicStyles.fontFamily }}>
+              <strong>Nom :</strong> {profil.data.nom}
+            </p>
+            <p style={{ fontFamily: dynamicStyles.fontFamily }}>
+              <strong>Prénom :</strong> {profil.data.prenom}
+            </p>
+            <p style={{ fontFamily: dynamicStyles.fontFamily }}>
+              <strong>Email :</strong> {profil.data.email}
+            </p>
+            <p style={{ fontFamily: dynamicStyles.fontFamily }}>
+              <strong>Administrateur :</strong> {profil.data.isAdmin ? "Oui" : "Non"}
+            </p>
+            <button 
+              className="btn-logout" 
+              onClick={deconnecter}
+              style={{
+                ...buttonStyles,
+                backgroundColor: options.highContrast ? '#660000' : '#f44336',
+                color: '#fff',
+                border: options.highContrast ? '1px solid #ff6666' : 'none',
+              }}
+            >
               Déconnexion
             </button>
           </div>
         )}
 
-        <hr />
+        <hr style={{
+          borderColor: options.highContrast ? '#333' : '#ddd',
+        }} />
 
         {/* Paramètres des seuils */}
-        <div className="seuils-container">
-          <h3>Paramètres</h3>
+        <div 
+          className="seuils-container"
+          style={{
+            backgroundColor: containerStyles.backgroundColor,
+            color: containerStyles.color,
+            fontFamily: dynamicStyles.fontFamily,
+          }}
+        >
+          <h3 style={{
+            color: options.highContrast ? '#fff' : '#2c3e50',
+            fontFamily: dynamicStyles.fontFamily,
+            fontSize: options.largeText ? '1.6rem' : '1.5rem',
+          }}>
+            Paramètres
+          </h3>
+          
           <form onSubmit={sauvegarderSeuils} className="param-form">
-            <label>
+            <label style={{
+              fontFamily: dynamicStyles.fontFamily,
+              fontSize: dynamicStyles.fontSize,
+              color: containerStyles.color,
+            }}>
               Seuil Température (°C)
               <input
                 type="number"
@@ -358,10 +470,21 @@ export default function Dashboard({ user }) {
                 step="0.1"
                 min="-50"
                 max="100"
+                style={{
+                  backgroundColor: options.highContrast ? '#222' : '#f9f9f9',
+                  color: options.highContrast ? '#fff' : '#34495e',
+                  borderColor: options.highContrast ? '#555' : '#e0e0e0',
+                  fontFamily: dynamicStyles.fontFamily,
+                  fontSize: isMobile ? '16px' : dynamicStyles.fontSize,
+                }}
               />
             </label>
 
-            <label>
+            <label style={{
+              fontFamily: dynamicStyles.fontFamily,
+              fontSize: dynamicStyles.fontSize,
+              color: containerStyles.color,
+            }}>
               Seuil Luminosité (lux)
               <input
                 type="number"
@@ -369,10 +492,27 @@ export default function Dashboard({ user }) {
                 onChange={(e) => setSeuils(prev => ({...prev, lumInput: e.target.value}))}
                 step="1"
                 min="0"
+                style={{
+                  backgroundColor: options.highContrast ? '#222' : '#f9f9f9',
+                  color: options.highContrast ? '#fff' : '#34495e',
+                  borderColor: options.highContrast ? '#555' : '#e0e0e0',
+                  fontFamily: dynamicStyles.fontFamily,
+                  fontSize: isMobile ? '16px' : dynamicStyles.fontSize,
+                }}
               />
             </label>
 
-            <button type="submit" className="btn btn-save">
+            <button 
+              type="submit" 
+              className="btn btn-save"
+              style={{
+                ...buttonStyles,
+                background: options.highContrast 
+                  ? 'linear-gradient(to right, #004d00, #003300)' 
+                  : 'linear-gradient(to right, #4caf50, #2e7d32)',
+                border: options.highContrast ? '1px solid #66bb66' : 'none',
+              }}
+            >
               Enregistrer
             </button>
           </form>
@@ -380,11 +520,42 @@ export default function Dashboard({ user }) {
       </div>
 
       {/* COLONNE DROITE - Dashboard */}
-      <div className="dashboard">
-        <h1 className="dashboard-title">Dashboard Capteurs & Actionneurs</h1>
+      <div 
+        className="dashboard"
+        style={{
+          backgroundColor: dynamicStyles.backgroundColor,
+          fontFamily: dynamicStyles.fontFamily,
+          fontSize: dynamicStyles.fontSize,
+        }}
+      >
+        <h1 
+          className="dashboard-title"
+          style={{
+            color: options.highContrast ? '#fff' : '#212121',
+            fontFamily: dynamicStyles.fontFamily,
+            fontSize: options.largeText ? '3rem' : isMobile ? '2rem' : '2.5rem',
+          }}
+        >
+          Dashboard Capteurs & Actionneurs
+        </h1>
 
-        {appareils.loading && <p>Chargement des données...</p>}
-        {appareils.error && <p style={{ color: "red" }}>Erreur : {appareils.error}</p>}
+        {appareils.loading && (
+          <p style={{ 
+            fontFamily: dynamicStyles.fontFamily,
+            color: dynamicStyles.color 
+          }}>
+            Chargement des données...
+          </p>
+        )}
+        
+        {appareils.error && (
+          <p style={{ 
+            color: options.highContrast ? "#ff6666" : "red",
+            fontFamily: dynamicStyles.fontFamily 
+          }}>
+            Erreur : {appareils.error}
+          </p>
+        )}
 
         {/* Grille des appareils */}
         <div className="device-grid">
@@ -396,33 +567,101 @@ export default function Dashboard({ user }) {
               <div
                 key={appareil.id}
                 className={`device-card ${estCapteur ? "capteur" : "actionneur"}`}
+                style={{
+                  backgroundColor: options.highContrast ? '#111' : '#fff',
+                  color: options.highContrast ? '#fff' : '#212121',
+                  border: options.highContrast 
+                    ? '3px solid #555' 
+                    : '2px solid #e1f5fe',
+                  borderLeft: options.highContrast
+                    ? '8px solid #00aaff'
+                    : '6px solid #81d4fa',
+                  fontFamily: dynamicStyles.fontFamily,
+                  boxShadow: options.highContrast 
+                    ? '0 0 15px rgba(255, 255, 255, 0.2), 0 0 0 1px #666' 
+                    : '0 8px 16px rgb(0 0 0 / 0.1)',
+                }}
               >
                 {/* En-tête de la carte */}
                 <div className="device-header">
-                  <h2 className="device-name">
+                  <h2 
+                    className="device-name"
+                    style={{
+                      color: options.highContrast ? '#fff' : '#212121',
+                      fontFamily: dynamicStyles.fontFamily,
+                      fontSize: options.largeText ? '1.4rem' : '1.2rem',
+                    }}
+                  >
                     {formaterNom(appareil.nom)}
                   </h2>
-                  <span className={`device-badge ${estCapteur ? "green" : "red"}`}>
+                  <span 
+                    className={`device-badge ${estCapteur ? "green" : "red"}`}
+                    style={{
+                      backgroundColor: estCapteur 
+                        ? (options.highContrast ? '#006600' : '#4caf50')
+                        : (options.highContrast ? '#660000' : '#f44336'),
+                      color: '#fff',
+                      fontSize: options.largeText ? '0.9rem' : '0.75rem',
+                      fontFamily: dynamicStyles.fontFamily,
+                    }}
+                  >
                     {estCapteur ? "Capteur" : "Actionneur"}
                   </span>
                 </div>
 
                 {/* Corps de la carte */}
-                <div className="device-body">
+                <div 
+                  className="device-body"
+                  style={{
+                    borderColor: options.highContrast ? '#333' : '#eee',
+                    fontFamily: dynamicStyles.fontFamily,
+                  }}
+                >
                   {estCapteur ? (
                     // Affichage pour les capteurs
                     <>
-                      <p className="sensor-value">
+                      <p 
+                        className="sensor-value"
+                        style={{
+                          color: options.highContrast ? '#fff' : '#333',
+                          fontFamily: dynamicStyles.fontFamily,
+                          fontSize: options.largeText ? '1.3rem' : '1.1rem',
+                        }}
+                      >
                         Dernière valeur: {appareil.valeur || "N/A"}
-                        {unite && <span className="sensor-unit"> {unite}</span>}
+                        {unite && (
+                          <span 
+                            className="sensor-unit"
+                            style={{
+                              color: options.highContrast ? '#ccc' : '#555',
+                              fontFamily: dynamicStyles.fontFamily,
+                            }}
+                          > 
+                            {unite}
+                          </span>
+                        )}
                       </p>
-                      <p className="sensor-date">
+                      <p 
+                        className="sensor-date"
+                        style={{
+                          color: options.highContrast ? '#aaa' : '#777',
+                          fontFamily: dynamicStyles.fontFamily,
+                          fontSize: options.largeText ? '1rem' : '0.8rem',
+                        }}
+                      >
                         Date: {appareil.date ? new Date(appareil.date).toLocaleString() : "N/A"}
                       </p>
                     </>
                   ) : (
                     // Affichage pour les actionneurs
-                    <p className="actionneur-state">
+                    <p 
+                      className="actionneur-state"
+                      style={{
+                        color: options.highContrast ? '#fff' : '#333',
+                        fontFamily: dynamicStyles.fontFamily,
+                        fontSize: options.largeText ? '1.3rem' : '1.1rem',
+                      }}
+                    >
                       État: {obtenirEtatLisible(appareil)}
                     </p>
                   )}
@@ -433,12 +672,22 @@ export default function Dashboard({ user }) {
                   <button 
                     className="btn btn-on" 
                     onClick={() => allumerAppareil(appareil.id)}
+                    style={{
+                      ...buttonStyles,
+                      backgroundColor: options.highContrast ? '#006600' : '#4caf50',
+                      border: options.highContrast ? '1px solid #66bb66' : 'none',
+                    }}
                   >
                     Allumer
                   </button>
                   <button 
                     className="btn btn-off" 
                     onClick={() => eteindrAppareil(appareil.id)}
+                    style={{
+                      ...buttonStyles,
+                      backgroundColor: options.highContrast ? '#660000' : '#f44336',
+                      border: options.highContrast ? '1px solid #ff6666' : 'none',
+                    }}
                   >
                     Éteindre
                   </button>
@@ -449,12 +698,22 @@ export default function Dashboard({ user }) {
                       <button
                         className="btn btn-graph"
                         onClick={() => basculerGraphique(appareil.id)}
+                        style={{
+                          ...buttonStyles,
+                          backgroundColor: options.highContrast ? '#003366' : '#1976d2',
+                          border: options.highContrast ? '1px solid #6699ff' : 'none',
+                        }}
                       >
                         {graphique.activeId === appareil.id ? "Cacher Graphique" : "Voir Graphique"}
                       </button>
                       <button
                         className="btn btn-csv"
                         onClick={() => exporterCSV(appareil.id, appareil.nom)}
+                        style={{
+                          ...buttonStyles,
+                          backgroundColor: options.highContrast ? '#663300' : '#ff9800',
+                          border: options.highContrast ? '1px solid #ffaa44' : 'none',
+                        }}
                       >
                         Export CSV
                       </button>
@@ -464,23 +723,67 @@ export default function Dashboard({ user }) {
 
                 {/* Graphique (si actif) */}
                 {graphique.activeId === appareil.id && graphique.data.length > 0 && (
-                  <div className="graph-container">
+                  <div 
+                    className="graph-container"
+                    style={{
+                      backgroundColor: options.highContrast ? '#222' : 'transparent',
+                      borderRadius: '8px',
+                      padding: options.highContrast ? '10px' : '0',
+                    }}
+                  >
                     {graphique.loading ? (
-                      <p>Chargement graphique...</p>
+                      <p style={{ 
+                        fontFamily: dynamicStyles.fontFamily,
+                        color: dynamicStyles.color 
+                      }}>
+                        Chargement graphique...
+                      </p>
                     ) : graphique.error ? (
-                      <p style={{ color: "red" }}>Erreur graphique : {graphique.error}</p>
+                      <p style={{ 
+                        color: options.highContrast ? "#ff6666" : "red",
+                        fontFamily: dynamicStyles.fontFamily 
+                      }}>
+                        Erreur graphique : {graphique.error}
+                      </p>
                     ) : (
                       <ResponsiveContainer width="100%" height={250}>
                         <LineChart data={graphique.data}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="date" />
-                          <YAxis />
-                          <Tooltip />
+                          <CartesianGrid 
+                            strokeDasharray="3 3" 
+                            stroke={options.highContrast ? '#444' : '#e0e0e0'}
+                          />
+                          <XAxis 
+                            dataKey="date" 
+                            tick={{ 
+                              fill: options.highContrast ? '#fff' : '#666',
+                              fontFamily: dynamicStyles.fontFamily,
+                              fontSize: 12
+                            }}
+                          />
+                          <YAxis 
+                            tick={{ 
+                              fill: options.highContrast ? '#fff' : '#666',
+                              fontFamily: dynamicStyles.fontFamily,
+                              fontSize: 12
+                            }}
+                          />
+                          <Tooltip 
+                            contentStyle={{
+                              backgroundColor: options.highContrast ? '#111' : '#fff',
+                              color: options.highContrast ? '#fff' : '#333',
+                              border: options.highContrast ? '1px solid #555' : '1px solid #ddd',
+                              fontFamily: dynamicStyles.fontFamily,
+                            }}
+                          />
                           <Line
                             type="monotone"
                             dataKey="valeur"
-                            stroke="#8884d8"
-                            activeDot={{ r: 8 }}
+                            stroke={options.highContrast ? '#66bb66' : '#8884d8'}
+                            strokeWidth={options.highContrast ? 3 : 2}
+                            activeDot={{ 
+                              r: 8,
+                              fill: options.highContrast ? '#66bb66' : '#8884d8'
+                            }}
                           />
                         </LineChart>
                       </ResponsiveContainer>
